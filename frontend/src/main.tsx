@@ -689,10 +689,10 @@ type PaySettings = {
 };
 
 const defaultPaySettings: PaySettings = {
-  title: "Pay with your preferred wallet.", subtitle: "Secure checkout",
+  title: "ZI PREMIUM SERVICES", subtitle: "Secure checkout",
   description: "Complete your payment through bKash, Nagad, or Rocket.",
   enabledProviders: ["bkash", "nagad", "rocket"],
-  merchantBkashNumber: "01XXXXXXXXX", merchantNagadNumber: "01XXXXXXXXX", merchantRocketNumber: "01XXXXXXXXX",
+  merchantBkashNumber: "01614602084", merchantNagadNumber: "01614602084", merchantRocketNumber: "01614602084",
   instructions: { bkash: "Send money to the bKash number shown.", nagad: "Send money to the Nagad number shown.", rocket: "Send money to the Rocket number shown." },
   showBranding: true, primaryColor: "#8b5cf6",
 };

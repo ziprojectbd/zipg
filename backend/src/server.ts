@@ -83,26 +83,33 @@ app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/public', publicRoutes);
 
-/* ────────── Static Frontend (Production) ────────── */
-app.use(express.static(FRONTEND_DIR, { maxAge: appConfig.isProduction ? '30d' : 0 }));
+/* ────────── Static Frontend (Production) ──────────
+   In development the Vite dev server (port 5173) owns the frontend, so the
+   API backend (port 3001) must NOT serve the built frontend or act as the
+   invoice page. Serving dist here would make localhost:3001/payment/invoice
+   respond with a stale build and show "Invoice Not Found".
+*/
+if (appConfig.isProduction) {
+  app.use(express.static(FRONTEND_DIR, { maxAge: '30d' }));
 
-/* ────────── SPA Fallback ────────── */
-app.use((req, res, next) => {
-  if (
-    req.path.startsWith('/api/') ||
-    req.path.startsWith('/uploads/') ||
-    req.path.startsWith('/socket.io') ||
-    req.path === '/health'
-  ) {
-    return next();
-  }
+  /* ────────── SPA Fallback ────────── */
+  app.use((req, res, next) => {
+    if (
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/uploads/') ||
+      req.path.startsWith('/socket.io') ||
+      req.path === '/health'
+    ) {
+      return next();
+    }
 
-  if (req.method === 'GET' && !req.path.includes('.')) {
-    return res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
-  }
+    if (req.method === 'GET' && !req.path.includes('.')) {
+      return res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+    }
 
-  next();
-});
+    next();
+  });
+}
 
 /* ────────── Error Handling ────────── */
 app.use(notFoundHandler);

@@ -3,13 +3,13 @@ import type { IPaySettings, ISystemSettings } from '../models/Settings.js';
 import { createActivityLog } from './activityLog.service.js';
 
 const DEFAULT_PAY_SETTINGS: IPaySettings = {
-  title: 'Pay with your preferred wallet.',
+  title: 'ZI PREMIUM SERVICES',
   subtitle: 'Secure checkout',
   description: 'Complete your payment through bKash, Nagad, or Rocket. Your transaction will be verified automatically.',
   enabledProviders: ['bkash', 'nagad', 'rocket'],
-  merchantBkashNumber: '01XXXXXXXXX',
-  merchantNagadNumber: '01XXXXXXXXX',
-  merchantRocketNumber: '01XXXXXXXXX',
+  merchantBkashNumber: '01614602084',
+  merchantNagadNumber: '01614602084',
+  merchantRocketNumber: '01614602084',
   instructions: {
     bkash: 'Send money to the bKash number shown by the merchant.',
     nagad: 'Send money to the Nagad number shown by the merchant.',

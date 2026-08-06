@@ -1,0 +1,21 @@
+{
+  "name": "zi-pay",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "concurrently -n frontend,backend -c cyan,magenta \"pnpm --dir frontend dev\" \"pnpm --dir backend dev\"",
+    "build": "pnpm --dir frontend build && pnpm --dir backend build",
+    "lint": "pnpm --dir frontend lint && pnpm --dir backend lint",
+    "typecheck": "pnpm --dir frontend typecheck && pnpm --dir backend typecheck",
+    "start": "node backend/dist/server.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "hono": "4.12.25"
+    }
+  }
+}

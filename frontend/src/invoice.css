@@ -1,0 +1,421 @@
+/* ═══════════════════════════════════════════════════════
+   bKash-Style Invoice Payment Page
+   Tailwind v4 theme + utilities ONLY (no preflight)
+   ═══════════════════════════════════════════════════════ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+/* ── Page ── */
+.bk-page {
+  min-height: 100vh;
+  background: #f0f2f5;
+  font-family: "Inter", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  color: #1a1d26;
+}
+
+/* ── Top Header ── */
+.bk-top {
+  text-align: center;
+  margin: 0 auto 16px;
+  width: 100%;
+  max-width: 420px;
+}
+.bk-top-lock {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 10px;
+}
+.bk-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+.bk-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* ── Main Card ── */
+.bk-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.07);
+  padding: 20px 18px;
+}
+
+/* ── Invoice Card ── */
+.bk-invoice-card {
+  padding: 16px 18px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  background: #fafbfc;
+}
+.bk-invoice-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+}
+.bk-invoice-row + .bk-invoice-row {
+  border-top: 1px solid #eef0f3;
+}
+.bk-invoice-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+.bk-invoice-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+  word-break: break-word;
+}
+.bk-invoice-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* ── Pink / Provider Payment Section ── */
+.bk-pay-box {
+  border-radius: 16px;
+  padding: 22px 18px 20px;
+  text-align: center;
+  color: #fff;
+  margin-bottom: 14px;
+}
+.bk-pay-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+.bk-pay-sub {
+  font-size: 11px;
+  opacity: 0.85;
+  margin: 0 0 16px;
+}
+.bk-bignum-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+.bk-bignum {
+  flex: 1;
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: none;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  outline: none;
+  font-family: "Inter", system-ui, sans-serif;
+  min-width: 0;
+}
+.bk-bignum::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+.bk-copy {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Inter", system-ui, sans-serif;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+.bk-copy:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.bk-pay-hint {
+  font-size: 11px;
+  opacity: 0.8;
+  margin: 12px 0 0;
+}
+
+/* ── Form Fields ── */
+.bk-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.bk-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin: 16px 0 6px;
+}
+.bk-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: "Inter", system-ui, sans-serif;
+  background: #fff;
+  outline: none;
+  color: #111827;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.bk-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+.bk-input::placeholder {
+  color: #b0b6c4;
+}
+.bk-hint {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+.bk-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  margin-top: 12px;
+}
+.bk-error.warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+/* ── Terms ── */
+.bk-terms {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 16px 0 0;
+  line-height: 1.4;
+}
+.bk-terms a {
+  color: #6366f1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.bk-terms a:hover {
+  color: #4f46e5;
+}
+
+/* ── Button Row ── */
+.bk-btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+.bk-btn {
+  flex: 1;
+  padding: 14px 0;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: "Inter", system-ui, sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.bk-btn--ghost {
+  background: #eef0f3;
+  color: #374151;
+}
+.bk-btn--ghost:hover:not(:disabled) {
+  background: #e2e5ea;
+  transform: translateY(-1px);
+}
+.bk-btn--ghost:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.bk-btn--primary {
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.bk-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+}
+.bk-btn--primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.bk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Support Section ── */
+.bk-support {
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 20px;
+  padding: 0 16px;
+}
+.bk-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin-bottom: 18px;
+}
+.bk-support-icon {
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+.bk-support-title {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 2px;
+}
+.bk-support-tel {
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.bk-support-tel:hover {
+  text-decoration: underline;
+}
+
+/* ── Footer ── */
+.bk-foot {
+  font-size: 11px;
+  color: #b0b6c4;
+  margin-top: 20px;
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+/* ── Loading ── */
+.bk-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 14px;
+}
+.bk-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: bkSpin 0.7s linear infinite;
+}
+@keyframes bkSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Pending / Success ── */
+.bk-success-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.07);
+  padding: 40px 24px;
+  text-align: center;
+}
+.bk-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-bottom: 18px;
+}
+.bk-success-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #111827;
+}
+.bk-success-text {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+.bk-success-text strong {
+  color: #111827;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .bk-card {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+  .bk-invoice-amount {
+    font-size: 18px;
+  }
+  .bk-pay-box {
+    padding: 18px 14px;
+  }
+  .bk-btn-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bk-top {
+    padding: 0 8px;
+  }
+}

@@ -768,7 +768,7 @@ function Checkout() {
               <button
                 className="primary-btn full"
                 style={{ marginTop: 8 }}
-                onClick={() => (window.location.href = `/payment/invoice?requestId=${encodeURIComponent(payment.requestId)}`)}
+                onClick={() => (window.location.href = `/payment/invoice?requestId=${encodeURIComponent(payment.requestId!)}`)}
               >
                 Continue to Payment <ArrowUpRight size={16} />
               </button>

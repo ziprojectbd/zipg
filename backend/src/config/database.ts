@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zipay';
+// Fallback points at the compose "mongo" service. In production MONGODB_URI is always provided via env.
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongo:27017/zipay';
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 5000;
 

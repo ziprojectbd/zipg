@@ -41,7 +41,7 @@ export const SystemSettings = mongoose.model<ISystemSettings>('SystemSettings', 
 export const DEFAULT_SETTINGS: Record<string, Record<string, unknown>> = {
   general: {
     siteName: 'ZI Pay',
-    siteUrl: 'http://localhost:3000',
+    siteUrl: 'https://pay.zipremiumservices.com',
     companyName: 'ZI Premium Services',
     supportEmail: 'support@pay.zipremiumservices.com',
     supportPhone: '+8801XXXXXXXXX',
@@ -76,11 +76,11 @@ export const DEFAULT_SETTINGS: Record<string, Record<string, unknown>> = {
     passwordRequireSpecialChar: false,
     sessionTimeoutMinutes: 30,
     maxConcurrentSessions: 5,
-    corsOrigins: ['http://localhost:3000', 'http://localhost:5173'],
+    corsOrigins: ['https://pay.zipremiumservices.com', 'https://zipremiumservices.com'],
     apiRateLimitPerMinute: 120,
     authRateLimitPerMinute: 10,
     ipWhitelist: [] as string[],
-    forceHttps: false,
+    forceHttps: true,
   },
   sms: {
     /* General */

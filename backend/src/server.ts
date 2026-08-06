@@ -129,7 +129,7 @@ async function start() {
 
     const PORT = appConfig.port;
     server.listen(PORT, () => {
-      console.log(`\n[zi-pay] 🚀 Server running on http://localhost:${PORT}`);
+      console.log(`\n[zi-pay] 🚀 Server running on port ${PORT} (${appConfig.frontendUrl})`);
       console.log(`[zi-pay] 🌍 Environment: ${appConfig.nodeEnv}`);
       console.log(`[zi-pay] 📡 Socket.IO ready`);
       console.log(`[zi-pay] ⏰ Cron jobs active`);

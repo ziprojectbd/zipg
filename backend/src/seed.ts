@@ -2,7 +2,8 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zipay';
+// In production MONGODB_URI is always provided via env.
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongo:27017/zipay';
 
 async function seed() {
   try {

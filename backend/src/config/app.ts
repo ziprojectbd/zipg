@@ -2,7 +2,8 @@ export const appConfig = {
   port: Number(process.env.PORT) || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // Production-safe default: the deployed gateway domain. Overridden by env in production.
+  frontendUrl: process.env.FRONTEND_URL || 'https://pay.zipremiumservices.com',
 
   jwt: {
     secret: process.env.JWT_SECRET || 'zipay-jwt-secret-change-in-production',
@@ -23,7 +24,7 @@ export const appConfig = {
   },
 
   cors: {
-    origin: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+    origin: (process.env.CORS_ORIGINS || 'https://pay.zipremiumservices.com,https://zipremiumservices.com,https://www.zipremiumservices.com')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),

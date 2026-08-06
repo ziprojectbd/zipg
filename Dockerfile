@@ -48,8 +48,10 @@ RUN pnpm --dir backend build
 # Uses VITE_* env vars set above — NO localhost in the production bundle.
 RUN pnpm --dir frontend build
 
-# Prune each workspace to production-only deps (drops vite/tsc/dev packages)
-RUN pnpm --dir backend prune --prod && pnpm --dir frontend prune --prod
+# Re-resolve the workspace with only production dependencies (drops vite/tsc/dev
+# packages). `pnpm prune --prod` was removed in pnpm v8+; `pnpm install --prod`
+# is the supported replacement.
+RUN pnpm install --prod
 
 ############################### RUNTIME STAGE #################################
 FROM node:22-alpine AS runtime

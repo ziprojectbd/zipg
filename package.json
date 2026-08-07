@@ -2,10 +2,7 @@
   "name": "zi-pay",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "concurrently -n frontend,backend -c cyan,magenta \"pnpm --dir frontend dev\" \"pnpm --dir backend dev\"",
     "build": "pnpm --dir frontend build && pnpm --dir backend build",
@@ -15,11 +12,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
-  },
-  "pnpm": {
-    "overrides": {
-      "hono": "4.12.25"
-    }
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

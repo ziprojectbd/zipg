@@ -20,14 +20,15 @@ coverage/
 !**/.env.*.example
 
 # ─── v0 / Next.js dead artifacts (not part of the app) ───
-app/
-components/
-lib/
-public/
-.next/
-next.config.mjs
-components.json
-vercel.json
+# Root-anchored with / so they ONLY match the root-level dirs, not
+# frontend/src/** or frontend/public/**.
+/app/
+/components/
+/lib/
+/public/
+/next.config.mjs
+/components.json
+/vercel.json
 yarn.lock
 
 # ─── Git / IDE ───

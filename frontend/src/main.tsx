@@ -7,7 +7,16 @@ import { motion } from "framer-motion";
 import "./styles.css";
 import "./invoice.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+/**
+ * Strip a trailing /api suffix from VITE_API_URL so callers can use either
+ *   VITE_API_URL=https://pay.zipremiumservices.com/api
+ * or
+ *   VITE_API_URL=https://pay.zipremiumservices.com
+ * and the fetch calls below (which prepend /api/...) still work.
+ */
+const RAW_API = import.meta.env.VITE_API_URL || "";
+const API_URL = RAW_API.replace(/\/api\/?$/, "");
+const MAIN_SITE_URL = import.meta.env.VITE_MAIN_SITE_URL || "";
 
 type Icon = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
@@ -487,7 +496,7 @@ function PaymentMethodsPage() {
   );
 }
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "846641436605-6djbol0trhdhukdm0lb8tp8g69mek3jl.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 /* ────────── Admin Login ────────── */
 function AdminLogin() {
@@ -825,6 +834,28 @@ function Checkout() {
   );
 }
 
+// ── Provider support numbers ────────────────────────────────────
+const PROVIDER_SUPPORT: Record<"bkash" | "nagad" | "rocket", { number: string }> = {
+  bkash:  { number: "16247" },
+  nagad:  { number: "16167" },
+  rocket: { number: "16216" },
+};
+
+function CustomerSupportFooter({ provider }: { provider: "bkash" | "nagad" | "rocket" }) {
+  const support = PROVIDER_SUPPORT[provider];
+
+  return (
+    <div className="bk-support">
+      <div className="bk-divider" />
+      <PhoneCall size={14} className="bk-support-icon" />
+      <p className="bk-support-title">Need Help?</p>
+      <a className="bk-support-tel" href={`tel:${support.number}`}>
+        Call {support.number}
+      </a>
+    </div>
+  );
+}
+
 const PROVIDER_THEME: Record<"bkash" | "nagad" | "rocket", { color: string }> = {
   bkash: { color: "#E2136E" },
   nagad: { color: "#F58220" },
@@ -843,6 +874,7 @@ function InvoicePayment() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [copiedMerchant, setCopiedMerchant] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15 * 60);
 
   // ── Invoice data (from backend) ──
@@ -963,7 +995,7 @@ function InvoicePayment() {
     return (
       <div className="bk-page">
         <motion.div
-          className="bk-loading"
+          className="bk-loading bk-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -982,14 +1014,9 @@ function InvoicePayment() {
               Back to Home <ArrowUpRight size={16} />
             </button>
           </div>
-          <div className="bk-support">
-            <div className="bk-divider" />
-            <PhoneCall size={14} className="bk-support-icon" />
-            <p className="bk-support-title">Need Help?</p>
-            <a className="bk-support-tel">Call 16247</a>
-          </div>
-          <p className="bk-foot">Powered by ZiPAY</p>
         </motion.div>
+        <CustomerSupportFooter provider={resolvedProvider} />
+        <p className="bk-foot">Powered by ZiPAY</p>
       </div>
     );
   }
@@ -998,7 +1025,7 @@ function InvoicePayment() {
     return (
       <div className="bk-page">
         <motion.div
-          className="bk-loading"
+          className="bk-loading bk-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -1018,6 +1045,7 @@ function InvoicePayment() {
     return (
       <div className="bk-page">
         <motion.div
+          className="bk-center"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
@@ -1039,14 +1067,9 @@ function InvoicePayment() {
               Make Another Payment <ArrowUpRight size={16} />
             </button>
           </div>
-          <div className="bk-support">
-            <div className="bk-divider" />
-            <PhoneCall size={14} className="bk-support-icon" />
-            <p className="bk-support-title">Need Help?</p>
-            <a className="bk-support-tel">Call 16247</a>
-          </div>
-          <p className="bk-foot">Powered by ZiPAY</p>
         </motion.div>
+        <CustomerSupportFooter provider={resolvedProvider} />
+        <p className="bk-foot">Powered by ZiPAY</p>
       </div>
     );
   }
@@ -1054,6 +1077,7 @@ function InvoicePayment() {
   return (
     <div className="bk-page">
       <motion.div
+        className="bk-center"
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
@@ -1080,7 +1104,19 @@ function InvoicePayment() {
             </div>
             <div className="bk-invoice-row">
               <span className="bk-invoice-label">Merchant Account:</span>
-              <span className="bk-invoice-value">{invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] || "—"}</span>
+              <span className="bk-invoice-value" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] || "—"}
+                {invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] ? (
+                  <button
+                    type="button"
+                    onClick={() => copyMerchantNumber(invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] || "")}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: copiedMerchant ? "#22c55e" : "#9ca3af" }}
+                    title={copiedMerchant ? "Copied!" : "Copy number"}
+                  >
+                    {copiedMerchant ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                  </button>
+                ) : null}
+              </span>
             </div>
             {invoiceData?.orderId && (
               <div className="bk-invoice-row">
@@ -1196,8 +1232,8 @@ function InvoicePayment() {
                 <button
                   type="button"
                   className="bk-btn bk-btn--primary"
-                  style={{ background: "#fff", color: PROVIDER_THEME[resolvedProvider].color }}
-                  disabled={submitting || timeLeft === 0 || !trxId.trim()}
+                  style={{ background: "#fff", color: PROVIDER_THEME[resolvedProvider].color, opacity: termsAccepted ? 1 : 0.5 }}
+                  disabled={submitting || timeLeft === 0 || !trxId.trim() || !termsAccepted}
                   onClick={(e) => submit(e)}
                 >
                   {submitting ? (
@@ -1223,22 +1259,70 @@ function InvoicePayment() {
             )}
 
             {/* Terms */}
-            <div className="bk-terms">
-              <ShieldCheck size={14} />
-              <span>By clicking Confirm you agree to the <a href="#">Terms &amp; Conditions</a></span>
-            </div>
+            <label className="bk-terms">
+              <input
+                type="checkbox"
+                className="bk-checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+              />
+              <span>I agree to the <a href={`${MAIN_SITE_URL}/terms-of-service`} target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a></span>
+            </label>
           </div>
         </main>
-
-        {/* Support */}
-        <div className="bk-support">
-          <div className="bk-divider" />
-          <PhoneCall size={14} className="bk-support-icon" />
-          <p className="bk-support-title">Need Help?</p>
-          <a className="bk-support-tel">Call 16247</a>
-        </div>
-        <p className="bk-foot">Powered by ZiPAY</p>
       </motion.div>
+
+      {/* ── How it works ── */}
+      <motion.div
+        className="bk-how"
+        initial="hidden"
+        animate="visible"
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }}
+      >
+        <motion.p
+          className="bk-how-title"
+          variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+          transition={{ duration: 0.4 }}
+        >
+          How it works
+        </motion.p>
+
+        <div className="bk-how-steps">
+          {[
+            { n: "1", t: `Open your ${providerLabel(resolvedProvider)} App` },
+            { n: "2", t: "Choose Send Money" },
+            { n: "3", t: "Enter merchant account number" },
+            { n: "4", t: "Confirm & complete the payment" },
+          ].map((s) => (
+            <motion.div
+              key={s.n}
+              className="bk-how-step"
+              variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <span className="bk-how-num">{s.n}</span>
+              <span className="bk-how-text">{s.t}</span>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          className="bk-how-secure"
+          variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+          transition={{ duration: 0.4 }}
+        >
+          <ShieldCheck size={16} className="bk-how-secure-icon" />
+          <div>
+            <p className="bk-how-secure-title">100% Secure Payment</p>
+            <p className="bk-how-secure-text">
+              Your payment information is safe with us. We never store your PIN or OTP.
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      <CustomerSupportFooter provider={resolvedProvider} />
+      <p className="bk-foot">Powered by ZiPAY</p>
     </div>
   );
 }

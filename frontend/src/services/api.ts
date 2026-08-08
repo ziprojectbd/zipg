@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+/**
+ * Strip a trailing /api suffix from VITE_API_URL so callers can use either
+ *   VITE_API_URL=https://pay.zipremiumservices.com/api
+ * or
+ *   VITE_API_URL=https://pay.zipremiumservices.com
+ * The axios baseURL becomes the bare origin and endpoint paths keep /api/...
+ */
+const RAW_API = import.meta.env.VITE_API_URL || '';
+const API_URL = RAW_API.replace(/\/api\/?$/, '');
 
 const api = axios.create({
   baseURL: API_URL,

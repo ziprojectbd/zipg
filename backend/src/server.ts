@@ -86,7 +86,7 @@ app.use('/api/public', publicRoutes);
 /* ────────── Static Frontend (Production) ──────────
    In development the Vite dev server (port 5173) owns the frontend, so the
    API backend (port 3001) must NOT serve the built frontend or act as the
-   invoice page. Serving dist here would make localhost:3001/payment/invoice
+   invoice page. Serving dist here would make the built /payment/invoice
    respond with a stale build and show "Invoice Not Found".
 */
 if (appConfig.isProduction) {

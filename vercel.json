@@ -1,1 +1,0 @@
-{"buildCommand":"pnpm --dir frontend build","outputDirectory":"frontend/dist","installCommand":"pnpm install"}

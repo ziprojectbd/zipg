@@ -14,8 +14,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 20px 16px;
   color: #1a1d26;
+  box-sizing: border-box;
+}
+
+/* Center wrapper that keeps card vertically centered and footer pushed to bottom */
+.bk-center {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 /* ── Top Header ── */
@@ -250,6 +262,16 @@
   color: #4f46e5;
 }
 
+/* ── Terms Checkbox ── */
+.bk-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
 /* ── Button Row ── */
 .bk-btn-row {
   display: flex;
@@ -341,6 +363,99 @@
   padding-bottom: 8px;
 }
 
+/* ── How It Works ── */
+.bk-how {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.05);
+  padding: 16px 14px;
+  margin-top: 14px;
+}
+.bk-how-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+  text-align: center;
+}
+.bk-how-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.bk-how-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+  border-radius: 10px;
+  padding: 10px 4px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.bk-how-step:nth-child(1) { background: linear-gradient(135deg, #ede9fe, #f3e8ff); }
+.bk-how-step:nth-child(2) { background: linear-gradient(135deg, #fef3c7, #fff7ed); }
+.bk-how-step:nth-child(3) { background: linear-gradient(135deg, #dbeafe, #e0f2fe); }
+.bk-how-step:nth-child(4) { background: linear-gradient(135deg, #dcfce7, #f0fdf4); }
+
+.bk-how-step:nth-child(1):hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25); }
+.bk-how-step:nth-child(2):hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245, 130, 32, 0.25); }
+.bk-how-step:nth-child(3):hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); }
+.bk-how-step:nth-child(4):hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25); }
+
+.bk-how-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bk-how-step:nth-child(1) .bk-how-num { background: #8b5cf6; }
+.bk-how-step:nth-child(2) .bk-how-num { background: #f58220; }
+.bk-how-step:nth-child(3) .bk-how-num { background: #3b82f6; }
+.bk-how-step:nth-child(4) .bk-how-num { background: #22c55e; }
+
+.bk-how-text {
+  font-size: 9px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.25;
+}
+.bk-how-secure {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+.bk-how-secure-icon {
+  color: #10b981;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.bk-how-secure-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 2px;
+}
+.bk-how-secure-text {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* ── Loading ── */
 .bk-loading {
   display: flex;
@@ -401,9 +516,29 @@
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
+  .bk-page {
+    padding: 12px 12px;
+    justify-content: center;
+  }
+  .bk-center {
+    justify-content: center;
+  }
   .bk-card {
+    max-width: 100%;
+    width: 100%;
     padding: 16px 14px;
     border-radius: 16px;
+    box-sizing: border-box;
+  }
+  .bk-card .bk-invoice-card {
+    padding: 14px 14px;
+  }
+  .bk-invoice-label {
+    font-size: 11px;
+  }
+  .bk-invoice-value {
+    font-size: 13px;
+    max-width: 65%;
   }
   .bk-invoice-amount {
     font-size: 18px;
@@ -411,11 +546,60 @@
   .bk-pay-box {
     padding: 18px 14px;
   }
+  .bk-pay-title {
+    font-size: 17px;
+  }
+  .bk-bignum-wrap {
+    gap: 6px;
+  }
+  .bk-bignum {
+    padding: 13px 12px;
+    font-size: 15px;
+  }
   .bk-btn-row {
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
   }
+  .bk-btn-row .bk-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 0;
+    font-size: 14px;
+    white-space: nowrap;
+  }
   .bk-top {
-    padding: 0 8px;
+    padding: 0 4px;
+  }
+  .bk-title {
+    font-size: 18px;
+  }
+  .bk-support {
+    padding: 0 12px;
+  }
+  .bk-how {
+    padding: 16px 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bk-page {
+    padding: 8px;
+  }
+  .bk-card {
+    padding: 14px 12px;
+  }
+  .bk-pay-box {
+    padding: 16px 12px;
+  }
+  .bk-how-steps {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .bk-btn-row {
+    gap: 8px;
+  }
+  .bk-btn-row .bk-btn {
+    padding: 11px 0;
+    font-size: 13px;
   }
 }

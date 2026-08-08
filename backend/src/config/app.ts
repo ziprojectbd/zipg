@@ -1,9 +1,14 @@
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://pay.zipremiumservices.com';
+
 export const appConfig = {
   port: Number(process.env.PORT) || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
+  // Public base URL of the API as seen from outside, behind the Coolify
+  // reverse proxy. e.g. https://pay.zipremiumservices.com/api
+  baseUrl: process.env.BASE_URL || 'https://pay.zipremiumservices.com/api',
   // Production-safe default: the deployed gateway domain. Overridden by env in production.
-  frontendUrl: process.env.FRONTEND_URL || 'https://pay.zipremiumservices.com',
+  frontendUrl: FRONTEND_URL,
 
   jwt: {
     secret: process.env.JWT_SECRET || 'zipay-jwt-secret-change-in-production',

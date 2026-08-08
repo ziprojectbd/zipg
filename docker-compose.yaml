@@ -15,7 +15,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Vite build-time variables — baked into the frontend bundle
-        VITE_API_URL: ${VITE_API_URL:-https://pay.zipremiumservices.com}
+        VITE_API_URL: ${VITE_API_URL:-https://pay.zipremiumservices.com/api}
         VITE_SOCKET_URL: ${VITE_SOCKET_URL:-https://pay.zipremiumservices.com}
         VITE_MAIN_SITE_URL: ${VITE_MAIN_SITE_URL:-https://zipremiumservices.com}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
@@ -30,6 +30,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - BASE_URL=${BASE_URL:-https://pay.zipremiumservices.com/api}
       # Runtime env — set these in Coolify
       - MONGODB_URI=${MONGODB_URI:-mongodb://zipay:${MONGO_INITDB_ROOT_PASSWORD:-zipay-secure-change-me}@mongo:27017/zipay?authSource=admin}
       - JWT_SECRET=${JWT_SECRET:-}

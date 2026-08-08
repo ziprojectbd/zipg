@@ -28,7 +28,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # ----- Build-time Vite args (baked into the SPA bundle) -----
 # These MUST be provided by docker-compose / Coolify / .env
-ARG VITE_API_URL=https://pay.zipremiumservices.com
+ARG VITE_API_URL=https://pay.zipremiumservices.com/api
 ARG VITE_SOCKET_URL=https://pay.zipremiumservices.com
 ARG VITE_MAIN_SITE_URL=https://zipremiumservices.com
 ARG VITE_GOOGLE_CLIENT_ID=""

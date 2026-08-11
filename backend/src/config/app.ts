@@ -1,13 +1,13 @@
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://pay.zipremiumservices.com';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 export const appConfig = {
-  port: Number(process.env.PORT) || 3001,
+  port: Number(process.env.PORT) || 5001,
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
   // Public base URL of the API as seen from outside, behind the Coolify
-  // reverse proxy. e.g. https://pay.zipremiumservices.com/api
-  baseUrl: process.env.BASE_URL || 'https://pay.zipremiumservices.com/api',
-  // Production-safe default: the deployed gateway domain. Overridden by env in production.
+  // reverse proxy. e.g. https://api.domain.com/api/v1
+  baseUrl: process.env.BASE_URL || 'http://localhost:5001',
+  // Frontend URL — used for CORS and cookie/redirect config.
   frontendUrl: FRONTEND_URL,
 
   jwt: {
@@ -38,6 +38,13 @@ export const appConfig = {
 
   payment: {
     defaultExpiryMinutes: 15,
+    /**
+     * Secure invoice expiry in minutes. The server sets
+     * `invoiceExpiresAt = invoiceCreatedAt + invoiceExpiryMinutes minutes`
+     * and enforces it on every token-verified access.
+     * Configurable via INVOICE_EXPIRY_MINUTES env var.
+     */
+    invoiceExpiryMinutes: Number(process.env.INVOICE_EXPIRY_MINUTES) || 15,
     maxAmount: 10000000,
     minAmount: 1,
     defaultCurrency: 'BDT',
@@ -67,3 +74,30 @@ export const appConfig = {
 } as const;
 
 export type AppConfig = typeof appConfig;
+
+/**
+ * Validate required environment variables at startup.
+ * Fails fast in production if critical vars are missing.
+ */
+export function validateEnv(): void {
+  const requiredInProduction: string[] = ['JWT_SECRET', 'MONGODB_URI'];
+  const missing: string[] = [];
+
+  if (appConfig.isProduction) {
+    for (const key of requiredInProduction) {
+      if (!process.env[key]) {
+        missing.push(key);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    console.error(`[zi-pay] ❌ Missing required environment variables: ${missing.join(', ')}`);
+    console.error('[zi-pay] Set these in your Coolify environment variables or .env file.');
+    if (appConfig.isProduction) {
+      process.exit(1);
+    } else {
+      console.warn('[zi-pay] ⚠️  Continuing in development mode with defaults.');
+    }
+  }
+}

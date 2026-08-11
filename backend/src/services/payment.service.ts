@@ -3,6 +3,7 @@ import { Transaction, PaymentRequest, type IPaymentRequest, type TransactionStat
 import { AppError } from '../middleware/errorHandler.js';
 import { createActivityLog } from './activityLog.service.js';
 import { appConfig } from '../config/app.js';
+import { generateSecureInvoiceFields } from './invoice.service.js';
 
 interface CreatePaymentInput {
   amount: number;
@@ -33,12 +34,26 @@ interface CreatePublicPaymentInput {
   callbackUrl?: string;
 }
 
+/** Shape returned when a secure invoice is created — token returned exactly once. */
+interface SecureInvoiceResult {
+  publicInvoiceId: string;
+  secureToken: string;
+}
+
 export async function createPayment(input: CreatePaymentInput) {
   const requestId = `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
   const expiresAt = new Date(Date.now() + appConfig.payment.defaultExpiryMinutes * 60 * 1000);
 
+  // Every new payment is also a secure invoice — high-entropy public ID and
+  // a token-hashed access credential.
+  const secure = await generateSecureInvoiceFields({ requestId });
+
   const paymentRequest = await PaymentRequest.create({
     requestId,
+    publicInvoiceId: secure.publicInvoiceId,
+    secureTokenHash: secure.secureTokenHash,
+    invoiceCreatedAt: secure.invoiceCreatedAt,
+    invoiceExpiresAt: secure.invoiceExpiresAt,
     merchantId: input.merchantId,
     apiKeyId: input.apiKeyId,
     amount: input.amount,
@@ -77,11 +92,13 @@ export async function createPayment(input: CreatePaymentInput) {
     message: `Payment request created: ${requestId} for ${input.amount} ${input.currency}`,
     entityType: 'PaymentRequest',
     entityId: requestId,
-    metadata: { provider: input.provider, amount: input.amount },
+    metadata: { publicInvoiceId: secure.publicInvoiceId, provider: input.provider, amount: input.amount },
   });
 
   return {
     requestId,
+    publicInvoiceId: secure.publicInvoiceId,
+    secureToken: secure.secureToken,
     transactionId,
     amount: input.amount,
     currency: input.currency || 'BDT',
@@ -107,8 +124,15 @@ export async function createPublicPayment(input: CreatePublicPaymentInput) {
   const transactionId = `TXN-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
   const expiresAt = new Date(Date.now() + appConfig.payment.defaultExpiryMinutes * 60 * 1000);
 
+  // Embed secure invoice fields so every public payment is also a secure invoice.
+  const secure = await generateSecureInvoiceFields({ requestId });
+
   await PaymentRequest.create({
     requestId,
+    publicInvoiceId: secure.publicInvoiceId,
+    secureTokenHash: secure.secureTokenHash,
+    invoiceCreatedAt: secure.invoiceCreatedAt,
+    invoiceExpiresAt: secure.invoiceExpiresAt,
     amount: input.amount,
     currency: input.currency || 'BDT',
     provider: input.provider,
@@ -138,6 +162,8 @@ export async function createPublicPayment(input: CreatePublicPaymentInput) {
 
   return {
     requestId,
+    publicInvoiceId: secure.publicInvoiceId,
+    secureToken: secure.secureToken,
     transactionId,
     amount: input.amount,
     currency: input.currency || 'BDT',
@@ -379,7 +405,9 @@ export async function getPaymentStats() {
 
 /**
  * Return the minimal invoice display data for a given requestId.
- * Only the fields the invoice UI needs are returned — nothing secret.
+ * Only the fields the invoice UI needs are returned — nothing secret —
+ * and server-side expiry is enforced: an expired invoice is never returned
+ * as payable (HTTP 410). Paid invoices stay viewable for tracking.
  */
 export async function getPublicInvoiceData(requestId: string) {
   const request = await PaymentRequest.findOne({ requestId }).lean();
@@ -388,13 +416,22 @@ export async function getPublicInvoiceData(requestId: string) {
     throw new AppError('Invoice not found', 404, 'INVOICE_NOT_FOUND');
   }
 
+  const { isInvoiceExpired } = await import('./invoice.service.js');
+  const expired = isInvoiceExpired(request) && request.status !== 'paid';
+
+  if (expired) {
+    throw new AppError('This invoice has expired.', 410, 'INVOICE_EXPIRED');
+  }
+
   return {
     requestId: request.requestId,
+    publicInvoiceId: request.publicInvoiceId || '',
     merchantName: request.merchantName || '',
     merchantAccount: request.merchantAccount || '',
     orderId: request.orderId || '',
     amount: request.amount,
     provider: request.provider,
     status: request.status,
+    invoiceExpiresAt: (request.invoiceExpiresAt ?? request.expiresAt ?? new Date()).toISOString(),
   };
 }

@@ -114,3 +114,29 @@ export function emitSettingsUpdated(settings: unknown) {
   socketIO.to('role:super_admin').emit('pay-settings.updated', settings);
   socketIO.to('role:admin').emit('pay-settings.updated', settings);
 }
+
+export function emitSmsTransaction(data: unknown) {
+  const socketIO = getIO();
+  socketIO.to('role:super_admin').emit('sms.transaction', data);
+  socketIO.to('role:admin').emit('sms.transaction', data);
+  socketIO.to('role:operator').emit('sms.transaction', data);
+}
+
+export function emitManualVerification(data: unknown) {
+  const socketIO = getIO();
+  socketIO.to('role:super_admin').emit('manual.verification', data);
+  socketIO.to('role:admin').emit('manual.verification', data);
+}
+
+export function emitInvoiceUpdated(data: unknown) {
+  const socketIO = getIO();
+  socketIO.to('public').emit('invoice.updated', data);
+  socketIO.to('role:super_admin').emit('invoice.updated', data);
+  socketIO.to('role:admin').emit('invoice.updated', data);
+}
+
+export function emitSecurityEvent(data: unknown) {
+  const socketIO = getIO();
+  socketIO.to('role:super_admin').emit('security.event', data);
+  socketIO.to('role:admin').emit('security.event', data);
+}

@@ -235,3 +235,123 @@ export interface CreatePaymentResponse {
   status: string;
   expiresAt: string;
 }
+
+/* ──────── Refund ──────── */
+export type RefundStatus = 'requested' | 'processing' | 'success' | 'failed' | 'cancelled';
+
+export interface Refund {
+  _id: string;
+  refundId: string;
+  transactionId: string;
+  amount: number;
+  currency: string;
+  status: RefundStatus;
+  reason: string;
+  adminNotes?: string;
+  processedBy?: string;
+  failureReason?: string;
+  processedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* ──────── Reconciliation ──────── */
+export interface ReconciliationSummary {
+  totalTransactions: number;
+  totalPaid: number;
+  totalPending: number;
+  totalFailed: number;
+  totalExpired: number;
+  totalCancelled: number;
+  paidAmount: number;
+  pendingAmount: number;
+  mismatchedCount: number;
+  orphanedCount: number;
+}
+
+export interface ReconciliationMismatch {
+  transaction: Transaction;
+  paymentRequest?: PaymentRequest;
+  mismatchType: 'status_mismatch' | 'orphaned';
+}
+
+/* ──────── Customer ──────── */
+export interface Customer {
+  name: string;
+  phone: string;
+  totalSpent: number;
+  orderCount: number;
+  paidCount: number;
+  lastOrderAt: string;
+  providers: PaymentProvider[];
+}
+
+/* ──────── System Health ──────── */
+export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'info';
+
+export interface SystemHealth {
+  database: { status: HealthStatus; latency: number; collections: number };
+  server: {
+    status: HealthStatus;
+    uptime: number;
+    memory: { total: number; free: number; used: number; percentage: number };
+    cpu: { cores: number; loadAverage: number[] };
+    platform: string;
+    nodeVersion: string;
+  };
+  payments: { status: HealthStatus; pendingCount: number; processingCount: number; oldestPending: string | null };
+  devices: { status: HealthStatus; total: number; online: number; offline: number };
+  sockets: { status: HealthStatus; connections: number };
+  overallStatus: HealthStatus;
+}
+
+/* ──────── Session ──────── */
+export interface AdminSession {
+  _id: string;
+  userId: { _id: string; name: string; email: string };
+  ipAddress: string;
+  userAgent: string;
+  deviceInfo?: string;
+  lastActivityAt: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+/* ──────── Security ──────── */
+export interface SecurityOverview {
+  activeSessions: number;
+  failedLogins: number;
+  totalUsers: number;
+  usersWithActiveSessions: number;
+}
+
+/* ──────── Notification ──────── */
+export interface NotificationPreferences {
+  emailNotifications: boolean;
+  browserNotifications: boolean;
+  webhookNotifications: boolean;
+  paymentSuccessNotify: boolean;
+  paymentFailedNotify: boolean;
+  offlineDeviceAlert: boolean;
+}
+
+/* ──────── Order / Invoice ──────── */
+export interface OrderInvoice {
+  _id: string;
+  requestId: string;
+  publicInvoiceId?: string;
+  merchantId?: string;
+  merchantName?: string;
+  merchantAccount?: string;
+  orderId?: string;
+  amount: number;
+  currency: string;
+  provider: PaymentProvider;
+  status: TransactionStatus;
+  customerName?: string;
+  customerPhone?: string;
+  transactionId?: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+}

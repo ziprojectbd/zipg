@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import * as paymentCtrl from '../controllers/payment.controller.js';
 import { authenticate, authenticateApiKey, validate, smsLimiter } from '../middleware/index.js';
-import { smsPayloadSchema, requestIdParamSchema } from '../validators/index.js';
+import { smsPayloadSchema, rawSmsPayloadSchema, requestIdParamSchema } from '../validators/index.js';
 
 const router = Router();
 
-// Android SMS receiver (public, rate limited)
+// Android SMS receiver — new raw-SMS endpoint (server-side parsing)
+router.post('/sms/raw', smsLimiter, validate({ body: rawSmsPayloadSchema }), paymentCtrl.smsController);
+
+// Android SMS receiver — legacy pre-parsed endpoint (backward compat, deprecated)
 router.post('/sms', smsLimiter, validate({ body: smsPayloadSchema }), paymentCtrl.smsController);
 
 // Merchant API (API key authenticated)

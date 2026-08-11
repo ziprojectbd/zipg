@@ -1,17 +1,19 @@
-# ── Environment ──
+# ── Environment / Secrets ──
 .env
 .env.*
 !.env.example
-!.env.*.example
+!**/.env.example
 
 # ── Dependencies ──
 node_modules/
+**/node_modules/
 
 # ── Build outputs ──
 dist/
+**/dist/
 build/
-.next/
 coverage/
+*.tsbuildinfo
 
 # ── Logs ──
 *.log
@@ -27,13 +29,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ── TypeScript ──
-*.tsbuildinfo
-
-# ── v0 sandbox internal files ──
-__v0_runtime_loader.js
-__v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
-.snowflake/
-.v0-trash/
-.vercel/
+# ── Docker (runtime) ──
+docker-compose.override.yml

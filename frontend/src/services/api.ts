@@ -85,6 +85,21 @@ export const publicPaymentApi = {
   invoice: (requestId: string) => api.get(`/api/payments/public/request/${requestId}`),
 };
 
+/**
+ * Secure invoice endpoints.
+ * - `access` fetches a live invoice by its high-entropy publicInvoiceId, gated
+ *   by the 64-hex token that only the customer holds in their URL.
+ * - `mint` creates a one-time server-authoritative invoice (used when the
+ *   Main Site redirected here without a server-side record first).
+ * - The raw token is returned exactly once by mint; never store it server-side.
+ */
+export const invoiceApi = {
+  access: (invoiceId: string, token: string) =>
+    api.get(`/api/invoices/${encodeURIComponent(invoiceId)}?token=${encodeURIComponent(token)}`),
+  mint: (data: { provider: string; amount: number; currency?: string; merchantName?: string; merchantAccount?: string; orderId?: string }) =>
+    api.post('/api/invoices/mint', data),
+};
+
 export const deviceApi = {
   list: (params?: Record<string, string>) => api.get('/api/admin/devices', { params }),
   get: (deviceId: string) => api.get(`/api/admin/devices/${deviceId}`),
@@ -135,4 +150,64 @@ export const paymentMethodApi = {
 
 export const activityLogApi = {
   list: (params?: Record<string, string>) => api.get('/api/admin/activity-logs', { params }),
+};
+
+/** Admin-only: transactions across all customers. */
+export const adminTransactionApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/transactions', { params }),
+};
+
+/** Admin-only: orders / invoices. */
+export const orderApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/orders', { params }),
+};
+
+/** Admin-only: customers (aggregated by phone). */
+export const customerApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/customers', { params }),
+};
+
+/** Admin-only: refunds. */
+export const refundApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/refunds', { params }),
+  get: (id: string) => api.get(`/api/admin/refunds/${id}`),
+  create: (data: { transactionId: string; amount: number; reason: string }) =>
+    api.post('/api/admin/refunds', data),
+  process: (id: string, action: 'approve' | 'reject', notes?: string) =>
+    api.post(`/api/admin/refunds/${id}/process`, { action, notes }),
+  cancel: (id: string, reason?: string) => api.post(`/api/admin/refunds/${id}/cancel`, { reason }),
+  stats: () => api.get('/api/admin/refunds/stats'),
+  refundable: (transactionId: string) => api.get(`/api/admin/refunds/refundable/${transactionId}`),
+};
+
+/** Admin-only: reconciliation. */
+export const reconciliationApi = {
+  summary: (params?: Record<string, unknown>) => api.get('/api/admin/reconciliation/summary', { params }),
+  mismatches: (params?: Record<string, unknown>) => api.get('/api/admin/reconciliation/mismatches', { params }),
+  daily: (params?: Record<string, unknown>) => api.get('/api/admin/reconciliation/daily', { params }),
+};
+
+/** Admin-only: security center (sessions, login monitoring). */
+export const securityApi = {
+  overview: () => api.get('/api/admin/security/overview'),
+  sessions: (params?: Record<string, unknown>) => api.get('/api/admin/security/sessions', { params }),
+  revokeSession: (id: string) => api.delete(`/api/admin/security/sessions/${id}`),
+  revokeAll: (userId: string) => api.post('/api/admin/security/sessions/revoke-all', { userId }),
+  loginHistory: (params?: Record<string, unknown>) => api.get('/api/admin/security/login-history', { params }),
+  failedLogins: (params?: Record<string, unknown>) => api.get('/api/admin/security/failed-logins', { params }),
+};
+
+/** Admin-only: system health. */
+export const systemHealthApi = {
+  get: () => api.get('/api/admin/system-health'),
+  uptime: () => api.get('/api/admin/system-health/uptime'),
+  resources: () => api.get('/api/admin/system-health/resources'),
+};
+
+/** Admin-only: notification preferences + log. */
+export const notificationApi = {
+  preferences: () => api.get('/api/admin/notifications/preferences'),
+  updatePreferences: (data: Record<string, unknown>) => api.put('/api/admin/notifications/preferences', data),
+  log: (params?: Record<string, unknown>) => api.get('/api/admin/notifications/log', { params }),
+  sendTest: (type: string, destination: string) => api.post('/api/admin/notifications/test', { type, destination }),
 };

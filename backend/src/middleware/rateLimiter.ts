@@ -12,6 +12,39 @@ export const globalLimiter = rateLimit({
   },
 });
 
+/**
+ * Invoice creation limit — bounds the number of one-time invoices a client
+ * can mint (prevents mass invoice generation / resource abuse).
+ */
+export const invoiceCreateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many invoice requests, please try again later',
+    code: 'INVOICE_CREATE_RATE_LIMIT',
+  },
+});
+
+/**
+ * Invoice access / token verification limit — halts token brute-force and
+ * invoice-ID enumeration. Generic body identical to the global one so an
+ * attacker cannot distinguish rate-limit events from real responses.
+ */
+export const invoiceAccessLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later',
+    code: 'RATE_LIMIT',
+  },
+});
+
 export const authLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,

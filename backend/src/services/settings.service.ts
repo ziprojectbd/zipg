@@ -21,7 +21,7 @@ const DEFAULT_PAY_SETTINGS: IPaySettings = {
 
 const DEFAULT_SYSTEM_SETTINGS: ISystemSettings = {
   siteName: 'ZI Pay',
-  siteUrl: process.env.FRONTEND_URL || 'https://pay.zipremiumservices.com',
+  siteUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   defaultCurrency: 'BDT',
   paymentExpiryMinutes: 15,
   maxPaymentAmount: 10000000,

@@ -47,6 +47,27 @@ export const requestIdParamSchema = z.object({
   requestId: z.string().trim().min(3).max(200),
 });
 
+/* ── Secure invoice access ── */
+/** Params: /api/invoices/:invoiceId */
+export const invoiceAccessParamsSchema = z.object({
+  invoiceId: z.string().regex(/^INV-[A-Z0-9]{1,20}$/, 'Malformed invoice ID'),
+});
+
+/** Query: ?token=<64-hex> */
+export const invoiceAccessQuerySchema = z.object({
+  token: z.string().regex(/^[a-f0-9]{64}$/, 'Malformed or oversized invoice token'),
+});
+
+/** Invoice mint body — called by the frontend when no server-side record exists yet (legacy Main Site redirect). */
+export const invoiceMintSchema = z.object({
+  amount: z.number().positive().max(10_000_000),
+  provider: z.enum(['bkash', 'nagad', 'rocket']),
+  currency: z.string().length(3).default('BDT').optional(),
+  merchantName: z.string().trim().max(200).optional(),
+  merchantAccount: z.string().trim().max(20).optional(),
+  orderId: z.string().trim().max(100).optional(),
+});
+
 export const merchantPaymentSchema = z.object({
   amount: z.number().positive().max(10_000_000),
   currency: z.string().length(3).default('BDT'),
@@ -204,6 +225,54 @@ export const updatePaymentMethodSchema = z.object({
   accountNumber: z.string().min(1).max(20).optional(),
   instructions: z.string().max(500).optional(),
   sortOrder: z.number().optional(),
+});
+
+/* ────────── SMS Parser / Manual Verification ────────── */
+
+/** New raw SMS payload — Android device sends raw SMS text for server-side parsing */
+export const rawSmsPayloadSchema = z.object({
+  deviceId: z.string().min(3),
+  rawSms: z.string().min(10).max(2000),
+  sender: z.string().min(1).max(30),
+  provider: z.enum(['bkash', 'nagad', 'rocket']).optional(),
+  receivedAt: z.string().datetime().optional(),
+});
+
+/** Admin test parser endpoint */
+export const testSmsParserSchema = z.object({
+  rawSms: z.string().min(10).max(2000),
+  provider: z.enum(['bkash', 'nagad', 'rocket']).optional(),
+});
+
+/** Admin update parser rules */
+export const updateSmsParserRulesSchema = z.object({
+  parserRules: z.record(z.string(), z.string()),
+});
+
+/** Manual verify */
+export const manualVerifySchema = z.object({
+  notes: z.string().max(500).optional(),
+});
+
+/** Manual reject */
+export const manualRejectSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
+/* ────────── Refund ────────── */
+export const createRefundSchema = z.object({
+  transactionId: z.string().min(3),
+  amount: z.number().positive(),
+  reason: z.string().min(1).max(500),
+});
+
+export const processRefundSchema = z.object({
+  action: z.enum(['approve', 'reject']),
+  notes: z.string().max(500).optional(),
+});
+
+export const cancelRefundSchema = z.object({
+  reason: z.string().max(500).optional(),
 });
 
 /* ────────── Query Params ────────── */

@@ -9,13 +9,15 @@ import compression from 'compression';
 import morgan from 'morgan';
 
 import { connectDatabase } from './config/database.js';
-import { appConfig } from './config/app.js';
+import { appConfig, validateEnv } from './config/app.js';
 import { globalLimiter, errorHandler, notFoundHandler } from './middleware/index.js';
 import { initializeSocket } from './socket/index.js';
 import { startCronJobs } from './cron/index.js';
+import { migrateLegacyInvoices } from './utils/migrateLegacyInvoices.js';
 
 import authRoutes from './routes/auth.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import invoiceRoutes from './routes/invoice.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
@@ -23,10 +25,12 @@ import publicRoutes from './routes/public.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const FRONTEND_DIR = path.resolve(__dirname, '../../frontend/dist');
 
 const app = express();
 const server = http.createServer(app);
+
+/* ────────── Environment Validation ────────── */
+validateEnv();
 
 /* ────────── Security & Middleware ────────── */
 app.set('trust proxy', 1);
@@ -75,41 +79,29 @@ app.get('/health', (_req, res) => {
   });
 });
 
-/* ────────── API Routes ────────── */
-app.use('/api/auth', authRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin/settings', settingsRoutes);
-app.use('/api/webhooks', webhookRoutes);
-app.use('/api/public', publicRoutes);
+/* ────────── API v1 Routes ────────── */
+const apiV1 = express.Router();
+apiV1.use('/auth', authRoutes);
+apiV1.use('/payments', paymentRoutes);
+apiV1.use('/invoices', invoiceRoutes);
+apiV1.use('/admin', adminRoutes);
+apiV1.use('/admin/settings', settingsRoutes);
+apiV1.use('/webhooks', webhookRoutes);
+apiV1.use('/public', publicRoutes);
 
-/* ────────── Static Frontend (Production) ──────────
-   In development the Vite dev server (port 5173) owns the frontend, so the
-   API backend (port 3001) must NOT serve the built frontend or act as the
-   invoice page. Serving dist here would make the built /payment/invoice
-   respond with a stale build and show "Invoice Not Found".
-*/
-if (appConfig.isProduction) {
-  app.use(express.static(FRONTEND_DIR, { maxAge: '30d' }));
+app.use('/api/v1', apiV1);
 
-  /* ────────── SPA Fallback ────────── */
-  app.use((req, res, next) => {
-    if (
-      req.path.startsWith('/api/') ||
-      req.path.startsWith('/uploads/') ||
-      req.path.startsWith('/socket.io') ||
-      req.path === '/health'
-    ) {
-      return next();
-    }
+/* ────────── Legacy API Routes (backward compatibility) ────────── */
+const apiLegacy = express.Router();
+apiLegacy.use('/auth', authRoutes);
+apiLegacy.use('/payments', paymentRoutes);
+apiLegacy.use('/invoices', invoiceRoutes);
+apiLegacy.use('/admin', adminRoutes);
+apiLegacy.use('/admin/settings', settingsRoutes);
+apiLegacy.use('/webhooks', webhookRoutes);
+apiLegacy.use('/public', publicRoutes);
 
-    if (req.method === 'GET' && !req.path.includes('.')) {
-      return res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
-    }
-
-    next();
-  });
-}
+app.use('/api', apiLegacy);
 
 /* ────────── Error Handling ────────── */
 app.use(notFoundHandler);
@@ -118,19 +110,17 @@ app.use(errorHandler);
 /* ────────── Start ────────── */
 async function start() {
   try {
-    // Connect to MongoDB
     await connectDatabase();
-
-    // Initialize Socket.IO
+    // Backfill secure invoice fields on legacy pending invoices (idempotent).
+    await migrateLegacyInvoices();
     initializeSocket(server);
-
-    // Start cron jobs
     startCronJobs();
 
     const PORT = appConfig.port;
     server.listen(PORT, () => {
-      console.log(`\n[zi-pay] 🚀 Server running on port ${PORT} (${appConfig.frontendUrl})`);
+      console.log(`\n[zi-pay] 🚀 Server running on port ${PORT}`);
       console.log(`[zi-pay] 🌍 Environment: ${appConfig.nodeEnv}`);
+      console.log(`[zi-pay] 📡 API v1: /api/v1`);
       console.log(`[zi-pay] 📡 Socket.IO ready`);
       console.log(`[zi-pay] ⏰ Cron jobs active`);
       console.log(`[zi-pay] 🔐 JWT issuer: ${appConfig.jwt.issuer}\n`);
@@ -147,11 +137,9 @@ async function shutdown(signal: string) {
   console.log(`\n[zi-pay] ${signal} received. Shutting down gracefully...`);
 
   server.close(async () => {
-    // Stop cron jobs
     const { stopCronJobs } = await import('./cron/index.js');
     stopCronJobs();
 
-    // Disconnect MongoDB
     const { disconnectDatabase } = await import('./config/database.js');
     await disconnectDatabase();
 
@@ -159,7 +147,6 @@ async function shutdown(signal: string) {
     process.exit(0);
   });
 
-  // Force shutdown after 10 seconds
   setTimeout(() => {
     console.error('[zi-pay] Forced shutdown after timeout');
     process.exit(1);

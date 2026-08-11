@@ -7,3 +7,34 @@ export { getPaySettings, updatePaySettings, getSystemSettings, updateSystemSetti
 export { createApiKey, regenerateApiKey, revokeApiKey, listApiKeys, getApiKey } from './apiKey.service.js';
 export { createUser, listUsers, getUser, updateUser, deleteUser, changePassword, listSessions, revokeSession } from './user.service.js';
 export { createActivityLog, getActivityLogs } from './activityLog.service.js';
+export {
+  generatePublicInvoiceId,
+  generateInvoiceAccessToken,
+  hashInvoiceToken,
+  invoiceExpiryFromNow,
+  isInvoiceExpired,
+  assertValidTransition,
+  verifyInvoiceAccess,
+  markInvoicePaid,
+  generateSecureInvoiceFields,
+  type InvoiceDisplayData,
+} from './invoice.service.js';
+export {
+  parseSms,
+  classifySmsCategory,
+  matchPendingTransaction,
+  processIncomingSms,
+  testParser,
+  getParserRules,
+  updateParserRules,
+  listSmsTransactions,
+  getSmsTransaction,
+  getSmsTransactionStats,
+  type ParsedSmsResult,
+  type ProcessSmsInput,
+} from './smsParser.service.js';
+export {
+  getPendingVerifications,
+  verifyTransaction,
+  rejectTransaction,
+} from './manualVerification.service.js';

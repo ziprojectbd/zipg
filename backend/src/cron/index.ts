@@ -19,8 +19,15 @@ export function startCronJobs(): void {
           { $set: { status: 'expired' } }
         );
 
+        // Expire both legacy (expiresAt) and secure-invoice (invoiceExpiresAt) deadlines.
         const expiredRequests = await PaymentRequest.updateMany(
-          { status: 'pending', expiresAt: { $lt: now } },
+          {
+            status: 'pending',
+            $or: [
+              { invoiceExpiresAt: { $lt: now } },
+              { invoiceExpiresAt: { $exists: false }, expiresAt: { $lt: now } },
+            ],
+          },
           { $set: { status: 'expired' } }
         );
 

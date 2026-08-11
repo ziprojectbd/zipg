@@ -88,6 +88,8 @@ export function safeJsonParse<T = unknown>(json: string, fallback: T): T {
   }
 }
 
+export { migrateLegacyInvoices } from './migrateLegacyInvoices.js';
+
 /**
  * Get pagination meta
  */

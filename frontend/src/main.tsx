@@ -687,7 +687,14 @@ function Landing() {
 }
 
 /* ────────── Checkout (public) ────────── */
-type CheckoutPayment = { id: string; requestId?: string; amount: number; status: string };
+type CheckoutPayment = {
+  id: string;
+  requestId?: string;
+  publicInvoiceId?: string;
+  secureToken?: string;
+  amount: number;
+  status: string;
+};
 
 type PaySettings = {
   title: string; subtitle: string; description: string;
@@ -773,7 +780,19 @@ function Checkout() {
               <div><span>Provider</span><strong>{providerLabel(provider)}</strong></div>
               <div><span>Status</span><Status>{payment.status}</Status></div>
             </div>
-            {payment.requestId && (
+            {payment.publicInvoiceId && payment.secureToken ? (
+              <button
+                className="primary-btn full"
+                style={{ marginTop: 8 }}
+                onClick={() => (
+                  window.location.href =
+                    `/payment/invoice?invoiceId=${encodeURIComponent(payment.publicInvoiceId!)}` +
+                    `&token=${encodeURIComponent(payment.secureToken!)}`
+                )}
+              >
+                Continue to Payment <ArrowUpRight size={16} />
+              </button>
+            ) : payment.requestId ? (
               <button
                 className="primary-btn full"
                 style={{ marginTop: 8 }}
@@ -781,7 +800,7 @@ function Checkout() {
               >
                 Continue to Payment <ArrowUpRight size={16} />
               </button>
-            )}
+            ) : null}
             <button className="outline-btn full" onClick={() => setPayment(null)}>Create another payment</button>
           </div>
         </div>
@@ -880,12 +899,14 @@ function InvoicePayment() {
   // ── Invoice data (from backend) ──
   const [invoiceData, setInvoiceData] = useState<{
     requestId: string;
+    publicInvoiceId?: string;
     merchantName: string;
     merchantAccount: string;
     orderId: string;
     amount: number;
     provider: string;
     status: string;
+    invoiceExpiresAt?: string;
   } | null>(null);
   const [invoiceError, setInvoiceError] = useState("");
 
@@ -896,10 +917,18 @@ function InvoicePayment() {
     }).catch(() => {});
   };
 
-  // Read query params — only requestId comes from the URL.
+  // Read query params — a secure invoice arrives as invoiceId + token;
+  // legacy invoices arrive as requestId; main-site direct invoices arrive
+  // as provider/amount/cb only.
   const requestId = params.get("requestId") || "";
+  const invoiceId = params.get("invoiceId") || "";
+  const token = params.get("token") || "";
   const cb = params.get("cb") || "";
 
+  // ── Load pay settings (shared by both Checkout and InvoicePayment) ──
+  // The invoice timer is driven by `invoiceExpiresAt` from the server
+  // invoice response — NOT by pay-settings.  See the invoice-fetch
+  // useEffect below for the server-authoritative timer calculation.
   useEffect(() => {
     fetch(`${API_URL}/api/public/pay-settings`)
       .then((res) => res.json())
@@ -908,25 +937,114 @@ function InvoicePayment() {
       .finally(() => setSettingsLoaded(true));
   }, []);
 
-  // Fetch invoice data from backend using requestId.
-  // If no requestId but a cb param exists (merchant-initiated direct invoice), skip fetch
-  // and rely on the query-param values for provider/amount.
+  // ── Invoice data — secure token-gated flow / legacy requestId / cb-only mint ──
+  // Runs only after pay-settings finish loading (settingsLoaded = true).
   useEffect(() => {
-    if (!requestId) {
-      if (!cb) { setInvoiceError("No request ID provided"); }
-      setSettingsLoaded(true);
+    if (!settingsLoaded) return;
+
+    // ── Flow A: Secure token-gated URL (invoiceId + token) ──
+    if (invoiceId && token) {
+      fetch(`${API_URL}/api/invoices/${encodeURIComponent(invoiceId)}?token=${encodeURIComponent(token)}`)
+        .then(async (res) => {
+          if (res.status === 410) throw new Error("This invoice has expired.");
+          if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Invoice not found"); }
+          return res.json();
+        })
+        .then((json) => {
+          const data = json?.data;
+          if (!data) throw new Error("Invoice not found");
+          setInvoiceData(data);
+          if (data.invoiceExpiresAt) {
+            const expiryMs = new Date(data.invoiceExpiresAt).getTime() - Date.now();
+            setTimeLeft(Math.max(0, Math.floor(expiryMs / 1000)));
+          }
+        })
+        .catch((e: unknown) => setInvoiceError(e instanceof Error ? e.message : "Invoice not found"))
+        .finally(() => setSettingsLoaded(true));
       return;
     }
-    fetch(`${API_URL}/api/payments/public/request/${encodeURIComponent(requestId)}`)
-      .then(async (res) => {
-        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Invoice not found"); }
-        return res.json();
-      })
-      .then((json) => { if (json?.data) setInvoiceData(json.data); else throw new Error("Invoice not found"); })
-      .catch((e: unknown) => setInvoiceError(e instanceof Error ? e.message : "Invoice not found"))
-      .finally(() => setSettingsLoaded(true));
-  }, [requestId]);
 
+    // ── Flow B: Legacy requestId (backward compatibility) ──
+    if (requestId) {
+      fetch(`${API_URL}/api/payments/public/request/${encodeURIComponent(requestId)}`)
+        .then(async (res) => {
+          if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Invoice not found"); }
+          return res.json();
+        })
+        .then((json) => {
+          const data = json?.data;
+          if (!data) throw new Error("Invoice not found");
+          setInvoiceData(data);
+          // Note: the public/request endpoint never exposes the secure token, so
+          // a bare requestId cannot be upgraded to a secure URL in-browser.  The
+          // customer must follow a token-bearing link to use the secure path.
+          if (data.invoiceExpiresAt) {
+            const expiryMs = new Date(data.invoiceExpiresAt).getTime() - Date.now();
+            setTimeLeft(Math.max(0, Math.floor(expiryMs / 1000)));
+          }
+        })
+        .catch((e: unknown) => setInvoiceError(e instanceof Error ? e.message : "Invoice not found"))
+        .finally(() => setSettingsLoaded(true));
+      return;
+    }
+
+    // ── Flow C: cb-only (main site direct invoice without server record) ──
+    if (cb) {
+      // Decode the provider/amount/orderId from the base64 cb payload, then
+      // mint a one-time server-authoritative invoice and redirect to the secure URL.
+      let decodedProvider = "bkash";
+      let decodedAmount = 0;
+      let decodedOrderId = "";
+      try {
+        const decoded = decodeURIComponent(atob(cb.replace(/-/g, "+").replace(/_/g, "/")));
+        const cbParams = new URLSearchParams(decoded);
+        decodedProvider = cbParams.get("provider") || params.get("provider") || "bkash";
+        decodedAmount = Number(cbParams.get("amount")) || Number(params.get("amount")) || 0;
+        decodedOrderId = cbParams.get("orderId") || "";
+      } catch {
+        decodedProvider = params.get("provider") || "bkash";
+        decodedAmount = Number(params.get("amount")) || 0;
+      }
+      if (!decodedAmount) { setInvoiceError("Invalid payment amount"); setSettingsLoaded(true); return; }
+
+      // Use browser history.replaceState to switch to secure URL after minting,
+      // preventing the browser URL from exposing the raw cb/amount/provider.
+      fetch(`${API_URL}/api/invoices/mint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: decodedProvider,
+          amount: decodedAmount,
+          orderId: decodedOrderId || undefined,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Could not create invoice"); }
+          return res.json();
+        })
+        .then((json) => {
+          const data = json?.data;
+          if (!data?.publicInvoiceId || !data?.secureToken) throw new Error("Invoice creation failed");
+          // Redirect to secure URL — browser back-button won't expose cb params
+          const secureUrl =
+            `/payment/invoice?invoiceId=${encodeURIComponent(data.publicInvoiceId)}` +
+            `&token=${encodeURIComponent(data.secureToken)}`;
+          window.history.replaceState(null, "", secureUrl);
+          window.location.href = secureUrl;
+        })
+        .catch((e: unknown) => {
+          setInvoiceError(e instanceof Error ? e.message : "Could not create invoice");
+          setSettingsLoaded(true);
+        });
+      return;
+    }
+
+    // ── No params at all ──
+    setInvoiceError("No request ID provided");
+    setSettingsLoaded(true);
+  }, [settingsLoaded, requestId, invoiceId, token, cb, params]);
+
+  // ── Countdown timer — driven by server-authoritative invoiceExpiresAt ──
   useEffect(() => {
     const timer = setInterval(() => setTimeLeft(t => (t > 0 ? t - 1 : 0)), 1000);
     return () => clearInterval(timer);

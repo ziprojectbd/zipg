@@ -234,7 +234,7 @@ export interface PaymentMethod {
   warning?: string;
   notice?: string;
   color?: string;
-  instructions: string;
+  supportPhone?: string;
   sortOrder: number;
 }
 
@@ -255,7 +255,7 @@ export interface CreatePaymentMethodInput {
   warning?: string;
   notice?: string;
   color?: string;
-  instructions?: string;
+  supportPhone?: string;
   sortOrder?: number;
 }
 

@@ -244,13 +244,13 @@ export const updatePaymentMethodSchema = z.object({
   accountNumber: z.string().min(1).max(20).optional(),
   accountName: z.string().max(200).optional(),
   accountType: z.enum(['personal', 'merchant']).optional(),
-  instructions: z.string().max(500).optional(),
   qrImageUrl: z.string().max(1000).optional(),
   icon: z.string().max(1000).optional(),
   steps: z.array(z.string().max(300)).optional(),
   warning: z.string().max(500).optional(),
   notice: z.string().max(500).optional(),
   color: z.string().max(30).optional(),
+  supportPhone: z.string().max(30).optional(),
   sortOrder: z.number().optional(),
 });
 

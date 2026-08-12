@@ -15,17 +15,18 @@ export interface IPaymentMethod extends Document {
   accountNumber: string;
   accountName?: string;
   accountType: 'personal' | 'merchant';
-  instructions: string;
   /** Permanent Bangla QR image URL (image section on the invoice page). */
   qrImageUrl?: string;
   /** Ordered payment steps shown on the invoice page. */
   steps?: string[];
   /** Warning / notice banner text. */
   warning?: string;
-  /** Additional notice shown with instructions. */
+  /** Additional notice shown with the payment steps. */
   notice?: string;
   /** Theme accent color for the provider (e.g. bKash pink). */
   color?: string;
+  /** Per-provider support phone shown in the "Need Help?" footer. */
+  supportPhone?: string;
   sortOrder: number;
   metadata?: Record<string, unknown>;
   createdAt: Date;
@@ -85,10 +86,6 @@ const paymentMethodSchema = new Schema<IPaymentMethod>(
       enum: ['personal', 'merchant'],
       default: 'personal',
     },
-    instructions: {
-      type: String,
-      default: '',
-    },
     qrImageUrl: {
       type: String,
       default: '',
@@ -106,6 +103,10 @@ const paymentMethodSchema = new Schema<IPaymentMethod>(
       default: '',
     },
     color: {
+      type: String,
+      default: '',
+    },
+    supportPhone: {
       type: String,
       default: '',
     },

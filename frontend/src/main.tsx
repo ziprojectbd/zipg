@@ -454,12 +454,11 @@ function PaySettingsPage() {
       <div className="card" style={{ padding: 24, marginTop: 18 }}>
         <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Invoice Page</h3>
         <div style={{ display: "grid", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={labelStyle}>Merchant Name <input type="text" value={settings.merchantName || ""} onChange={(e) => update("merchantName", e.target.value)} style={inputStyle} /></label>
-            <label style={labelStyle}>Merchant Account <input type="text" value={settings.merchantAccount || ""} onChange={(e) => update("merchantAccount", e.target.value)} style={inputStyle} /></label>
-          </div>
           <label style={labelStyle}>Invoice Heading <input type="text" value={settings.invoiceHeading || ""} onChange={(e) => update("invoiceHeading", e.target.value)} style={inputStyle} /></label>
           <label style={labelStyle}>Invoice Description <textarea rows={3} value={settings.invoiceDescription || ""} onChange={(e) => update("invoiceDescription", e.target.value)} style={inputStyle} /></label>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+            Merchant name, account type and account number are configured per provider in Payment Methods.
+          </p>
         </div>
       </div>
 
@@ -510,15 +509,15 @@ function PaySettingsPage() {
 /* ────────── Payment Methods ────────── */
 type MethodForm = {
   code: string; name: string; displayName: string; accountNumber: string; accountName: string;
-  accountType: "personal" | "merchant"; icon: string; qrImageUrl: string; instructions: string; steps: string;
-  warning: string; notice: string; color: string; minAmount: number; maxAmount: number;
+  accountType: "personal" | "merchant"; icon: string; qrImageUrl: string; steps: string;
+  warning: string; notice: string; color: string; supportPhone: string; minAmount: number; maxAmount: number;
   processingFee: number; processingFeeType: "fixed" | "percentage"; isActive: boolean;
 };
 
 const EMPTY_METHOD: MethodForm = {
   code: "", name: "", displayName: "", accountNumber: "", accountName: "",
-  accountType: "merchant", icon: "", qrImageUrl: "", instructions: "", steps: "", warning: "", notice: "",
-  color: "#F37021", minAmount: 10, maxAmount: 200000, processingFee: 0, processingFeeType: "percentage", isActive: true,
+  accountType: "merchant", icon: "", qrImageUrl: "", steps: "", warning: "", notice: "",
+  color: "#F37021", supportPhone: "", minAmount: 10, maxAmount: 200000, processingFee: 0, processingFeeType: "percentage", isActive: true,
 };
 
 function PaymentMethodsPage() {
@@ -555,8 +554,8 @@ function PaymentMethodsPage() {
     setEditing({
       code: m.code, name: m.name || m.code, displayName: m.displayName || "", accountNumber: m.accountNumber || "",
       accountName: m.accountName || "", accountType: m.accountType || "merchant", icon: m.icon || "",
-      qrImageUrl: m.qrImageUrl || "", instructions: m.instructions || "", steps: (m.steps || []).join("\n"), warning: m.warning || "",
-      notice: m.notice || "", color: m.color || FALLBACK_PROVIDER_THEME[m.code]?.color || "#8b5cf6",
+      qrImageUrl: m.qrImageUrl || "", steps: (m.steps || []).join("\n"), warning: m.warning || "",
+      notice: m.notice || "", color: m.color || FALLBACK_PROVIDER_THEME[m.code]?.color || "#8b5cf6", supportPhone: m.supportPhone || "",
       minAmount: m.minAmount ?? 10, maxAmount: m.maxAmount ?? 200000, processingFee: m.processingFee ?? 0,
       processingFeeType: m.processingFeeType || "percentage", isActive: m.isActive !== false,
     });
@@ -655,7 +654,7 @@ function PaymentMethodsPage() {
     return (
       <div className="resource-page">
         <div className="page-intro">
-          <div><div className="resource-title"><div className="metric-icon purple"><CircleDollarSign size={19} /></div><h2>{creating ? "Add Payment Method" : `Edit ${providerLabel(editing.code)}`}</h2></div><p>{creating ? "Create a new payment provider (e.g. Upay)." : "Configure the provider's display, account, QR and instructions."}</p></div>
+          <div><div className="resource-title"><div className="metric-icon purple"><CircleDollarSign size={19} /></div><h2>{creating ? "Add Payment Method" : `Edit ${providerLabel(editing.code)}`}</h2></div><p>{creating ? "Create a new payment provider (e.g. Upay)." : "Configure the provider's display, account, QR and payment steps."}</p></div>
           <button className="outline-btn" onClick={() => { setStep("list"); setEditing(null); }}>Back</button>
         </div>
         {notice && <div className="form-error" style={{ marginBottom: 14 }}>{notice}</div>}
@@ -683,10 +682,6 @@ function PaymentMethodsPage() {
               {field("icon", "Provider Logo URL", "https://...")}
               {field("qrImageUrl", "Merchant QR Image URL", "https://...")}
             </div>
-            <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
-              Instructions
-              <textarea rows={3} placeholder="How customers should pay with this provider." value={editing.instructions || ""} onChange={(e) => setEditing((s) => (s ? { ...s, instructions: e.target.value } : s))} style={inputStyle} />
-            </label>
             <div style={{ display: "block" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
                 <span>How It Works / Steps</span>
@@ -714,6 +709,9 @@ function PaymentMethodsPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {field("warning", "Warning", "e.g. Only pay the exact amount shown")}
               {field("notice", "Notice", "e.g. No fee for this payment")}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {field("supportPhone", "Support Phone", "01XXXXXXXXX")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
               {field("minAmount", "Min Amount (BDT)", "10")}
@@ -984,11 +982,11 @@ type ProviderConfig = {
   accountName?: string;
   accountType?: "personal" | "merchant";
   qrImageUrl?: string;
-  instructions?: string;
   steps?: string[];
   warning?: string;
   notice?: string;
   color?: string;
+  supportPhone?: string;
   minAmount?: number;
   maxAmount?: number;
 };
@@ -1455,8 +1453,14 @@ function InvoicePayment() {
   // Provider config from the DB-driven list (falls back to built-in defaults).
   const resolvedProviderConfig = findProvider(providers, resolvedProvider);
   const providerColor = resolvedProviderConfig.color || FALLBACK_PROVIDER_THEME[resolvedProvider]?.color || "#8b5cf6";
-  const providerSupportNumber = settings.supportPhone || "";
-  const providerAccount = invoiceData?.merchantAccount || resolvedProviderConfig.accountNumber || settings.merchantAccount || "";
+  const providerSupportNumber =
+    resolvedProviderConfig.supportPhone ||
+    settings.supportPhone ||
+    FALLBACK_SUPPORT[resolvedProvider]?.number ||
+    "";
+  const providerAccount = resolvedProviderConfig.accountNumber || invoiceData?.merchantAccount || settings.merchantAccount || "";
+  const providerAccountName = resolvedProviderConfig.accountName || invoiceData?.merchantName || settings.title || "ZiPAY Merchant";
+  const providerAccountType = resolvedProviderConfig.accountType || "";
 
   // Resolve return URL. Prefer explicit cb param, else derive from document.referrer.
   let returnUrl = "";
@@ -1528,7 +1532,7 @@ function InvoicePayment() {
             </button>
           </div>
         </motion.div>
-        <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+        <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
         <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
       </div>
     );
@@ -1618,10 +1622,10 @@ function InvoicePayment() {
             <h2 className="bk-success-title">{conf.title}</h2>
             <p className="bk-success-text">{conf.text}</p>
             <div className="bk-invoice-card" style={{ marginTop: 18 }}>
-              {invoiceData.merchantName && (
+              {providerAccountName && (
                 <div className="bk-invoice-row">
                   <span className="bk-invoice-label">Merchant:</span>
-                  <span className="bk-invoice-value">{invoiceData.merchantName}</span>
+                  <span className="bk-invoice-value">{providerAccountName}</span>
                 </div>
               )}
               <div className="bk-invoice-row">
@@ -1644,7 +1648,7 @@ function InvoicePayment() {
             </button>
           </div>
         </motion.div>
-        <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+        <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
         <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
       </div>
     );
@@ -1684,7 +1688,7 @@ function InvoicePayment() {
             </button>
           </div>
         </motion.div>
-        <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+        <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
         <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
       </div>
     );
@@ -1701,9 +1705,17 @@ function InvoicePayment() {
         {/* Top Header */}
         <div className="bk-top">
           <div className="bk-top-lock">
-            <Lock size={18} />
+            {resolvedProviderConfig.icon ? (
+              <img src={resolvedProviderConfig.icon} alt={providerLabel(resolvedProvider)} className="bk-top-logo" />
+            ) : (
+              <Lock size={18} />
+            )}
           </div>
-          <h1 className="bk-title">{settings.invoiceHeading || `${providerLabel(resolvedProvider)} Payment`}</h1>
+          <h1 className="bk-title">
+            {settings.invoiceHeading
+              ? `${settings.invoiceHeading} — ${resolvedProviderConfig.displayName || providerLabel(resolvedProvider)}`
+              : `${providerLabel(resolvedProvider)} Payment`}
+          </h1>
           <p className="bk-sub">
             <Lock size={11} />
             {settings.invoiceDescription || "Secure Payment · 256-bit SSL Encrypted"}
@@ -1716,8 +1728,14 @@ function InvoicePayment() {
           <div className="bk-invoice-card">
             <div className="bk-invoice-row">
               <span className="bk-invoice-label">Merchant:</span>
-              <span className="bk-invoice-value">{invoiceData?.merchantName || settings.title || "ZiPAY Merchant"}</span>
+              <span className="bk-invoice-value">{providerAccountName}</span>
             </div>
+            {providerAccountType && (
+              <div className="bk-invoice-row">
+                <span className="bk-invoice-label">Account Type:</span>
+                <span className="bk-invoice-value">{providerAccountType}</span>
+              </div>
+            )}
             <div className="bk-invoice-row">
               <span className="bk-invoice-label">Merchant Account:</span>
               <span className="bk-invoice-value" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -1746,7 +1764,7 @@ function InvoicePayment() {
             </div>
           </div>
 
-          {/* Provider config — QR + account + instructions from DB */}
+          {/* Provider config — QR + account from DB */}
           {resolvedProviderConfig.qrImageUrl && (
             <div className="bk-invoice-card" style={{ textAlign: "center" }}>
               <div className="bk-provider-qr">
@@ -1832,14 +1850,6 @@ function InvoicePayment() {
               }
             </p>
 
-            {formStep === "phone" && resolvedProviderConfig.steps && resolvedProviderConfig.steps.length > 0 && (
-              <ol className="bk-provider-steps">
-                {resolvedProviderConfig.steps.map((step, si) => (
-                  <li key={si}>{step}</li>
-                ))}
-              </ol>
-            )}
-
             <div className="bk-btn-row">
               {formStep === "trx" && (
                 <button
@@ -1858,10 +1868,12 @@ function InvoicePayment() {
                   disabled={submitting}
                   style={{ color: "#fff", background: "rgba(255,255,255,0.2)" }}
                   onClick={() => {
-                    if (returnUrl) {
+                    if (MAIN_SITE_URL) {
+                      window.location.href = `${MAIN_SITE_URL}/checkout`;
+                    } else if (returnUrl) {
                       try {
                         const base = new URL(returnUrl);
-                        window.location.href = base.origin + "/payment-and-confirmation";
+                        window.location.href = base.origin + "/checkout";
                       } catch { window.history.back(); }
                     } else { window.history.back(); }
                   }}
@@ -1969,7 +1981,7 @@ function InvoicePayment() {
         </motion.div>
       </motion.div>
 
-      <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+      <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
       <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
     </div>
   );

@@ -27,6 +27,7 @@ coverage/
 Thumbs.db
 *.md
 docker-compose.yml
+docker-compose.yaml
 deploy/
 ecosystem.config.cjs
 scripts/

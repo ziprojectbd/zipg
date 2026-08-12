@@ -1,7 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type PaymentMethodCode = 'bkash' | 'nagad' | 'rocket' | 'upay';
+
 export interface IPaymentMethod extends Document {
-  code: 'bkash' | 'nagad' | 'rocket';
+  code: PaymentMethodCode;
   name: string;
   displayName: string;
   icon?: string;
@@ -11,8 +13,19 @@ export interface IPaymentMethod extends Document {
   processingFee: number;
   processingFeeType: 'fixed' | 'percentage';
   accountNumber: string;
+  accountName?: string;
   accountType: 'personal' | 'merchant';
   instructions: string;
+  /** Permanent Bangla QR image URL (image section on the invoice page). */
+  qrImageUrl?: string;
+  /** Ordered payment steps shown on the invoice page. */
+  steps?: string[];
+  /** Warning / notice banner text. */
+  warning?: string;
+  /** Additional notice shown with instructions. */
+  notice?: string;
+  /** Theme accent color for the provider (e.g. bKash pink). */
+  color?: string;
   sortOrder: number;
   metadata?: Record<string, unknown>;
   createdAt: Date;
@@ -23,7 +36,7 @@ const paymentMethodSchema = new Schema<IPaymentMethod>(
   {
     code: {
       type: String,
-      enum: ['bkash', 'nagad', 'rocket'],
+      enum: ['bkash', 'nagad', 'rocket', 'upay'],
       required: true,
       unique: true,
     },
@@ -62,12 +75,37 @@ const paymentMethodSchema = new Schema<IPaymentMethod>(
       type: String,
       required: true,
     },
+    accountName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     accountType: {
       type: String,
       enum: ['personal', 'merchant'],
       default: 'personal',
     },
     instructions: {
+      type: String,
+      default: '',
+    },
+    qrImageUrl: {
+      type: String,
+      default: '',
+    },
+    steps: {
+      type: [String],
+      default: [],
+    },
+    warning: {
+      type: String,
+      default: '',
+    },
+    notice: {
+      type: String,
+      default: '',
+    },
+    color: {
       type: String,
       default: '',
     },

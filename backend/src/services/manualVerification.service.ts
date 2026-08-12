@@ -2,6 +2,7 @@ import { SmsTransaction, Transaction, PaymentRequest } from '../models/index.js'
 import { AppError } from '../middleware/errorHandler.js';
 import { createActivityLog } from './activityLog.service.js';
 import { emitManualVerification } from '../socket/index.js';
+import { assertValidTransition } from './invoice.service.js';
 
 /* ────────── Types ────────── */
 
@@ -75,10 +76,12 @@ export async function verifyTransaction(
     : null;
 
   if (!matchedTransaction && smsDoc.parsedAmount && smsDoc.provider !== 'unknown') {
-    // Try to find a pending transaction matching amount + provider
+    // Try to find a pending transaction matching amount + provider.
+    // Stored amounts are whole-taka integers; SMS amounts may be parsed as
+    // floats (e.g. 1000.00) — match on the rounded amount so they align.
     matchedTransaction = await Transaction.findOne({
       provider: smsDoc.provider,
-      amount: smsDoc.parsedAmount,
+      amount: Math.round(smsDoc.parsedAmount),
       status: 'pending',
       expiresAt: { $gt: new Date() },
     }).sort({ createdAt: 1 });
@@ -178,6 +181,32 @@ export async function rejectTransaction(
   smsDoc.verificationNotes = reason || 'Rejected by admin';
   smsDoc.verifiedAt = new Date();
 
+  // Mark the matched Transaction (and linked PaymentRequest) as rejected so the
+  // customer's invoice actually shows the Rejected state. Safe transitions only.
+  if (smsDoc.matchedTransactionId) {
+    const matchedTransaction = await Transaction.findById(smsDoc.matchedTransactionId);
+    if (matchedTransaction) {
+      assertValidTransition(matchedTransaction.status, 'rejected');
+      matchedTransaction.status = 'rejected';
+      matchedTransaction.verifiedAt = new Date();
+      matchedTransaction.verificationMethod = 'manual';
+      matchedTransaction.metadata = {
+        ...matchedTransaction.metadata,
+        manualRejectedBy: adminId,
+        manualRejectedAt: new Date().toISOString(),
+        manualRejectReason: reason || null,
+      };
+      await matchedTransaction.save();
+
+      if (matchedTransaction.paymentRequestId) {
+        await PaymentRequest.updateOne(
+          { _id: matchedTransaction.paymentRequestId },
+          { status: 'rejected' },
+        );
+      }
+    }
+  }
+
   await smsDoc.save();
 
   await createActivityLog({
@@ -191,6 +220,7 @@ export async function rejectTransaction(
       provider: smsDoc.provider,
       amount: smsDoc.parsedAmount,
       reason,
+      rejectedTransactionId: smsDoc.matchedTransactionId ? String(smsDoc.matchedTransactionId) : null,
     },
   });
 

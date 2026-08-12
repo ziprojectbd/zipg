@@ -10,6 +10,8 @@ import {
   updatePaySettingsSchema,
   updateSystemSettingsSchema,
   updatePaymentMethodSchema,
+  createPaymentMethodSchema,
+  reorderPaymentMethodsSchema,
   paginationSchema,
   testSmsParserSchema,
   updateSmsParserRulesSchema,
@@ -57,7 +59,10 @@ router.put('/settings/system', validate({ body: updateSystemSettingsSchema }), a
 
 /* ────────── Payment Methods ────────── */
 router.get('/payment-methods', adminCtrl.listPaymentMethodsController);
+router.post('/payment-methods', validate({ body: createPaymentMethodSchema }), adminCtrl.createPaymentMethodController);
+router.post('/payment-methods/reorder', validate({ body: reorderPaymentMethodsSchema }), adminCtrl.reorderPaymentMethodsController);
 router.put('/payment-methods/:code', validate({ body: updatePaymentMethodSchema }), adminCtrl.updatePaymentMethodController);
+router.delete('/payment-methods/:code', adminCtrl.deletePaymentMethodController);
 
 /* ────────── Activity Logs ────────── */
 router.get('/activity-logs', adminCtrl.activityLogsController);

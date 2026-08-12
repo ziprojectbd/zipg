@@ -49,7 +49,7 @@ const smsTransactionSchema = new Schema<ISmsTransaction>(
     provider: {
       type: String,
       required: true,
-      enum: ['bkash', 'nagad', 'rocket', 'unknown'],
+      enum: ['bkash', 'nagad', 'rocket', 'upay', 'unknown'],
       default: 'unknown',
       index: true,
     },

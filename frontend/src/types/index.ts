@@ -1,5 +1,5 @@
-export type PaymentProvider = 'bkash' | 'nagad' | 'rocket';
-export type TransactionStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'expired' | 'cancelled';
+export type PaymentProvider = 'bkash' | 'nagad' | 'rocket' | 'upay';
+export type TransactionStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'expired' | 'cancelled' | 'rejected';
 export type UserRole = 'super_admin' | 'admin' | 'operator';
 export type DeviceStatus = 'online' | 'offline';
 export type WebhookEvent =
@@ -147,11 +147,26 @@ export interface PaySettings {
     bkash: string;
     nagad: string;
     rocket: string;
+    upay?: string;
   };
   showBranding: boolean;
   primaryColor: string;
   logoUrl?: string;
   faviconUrl?: string;
+  merchantName?: string;
+  merchantAccount?: string;
+  invoiceHeading?: string;
+  invoiceDescription?: string;
+  footerText?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+  pendingPaymentMessage?: string;
+  pendingVerificationMessage?: string;
+  paidMessage?: string;
+  expiredMessage?: string;
+  cancelledMessage?: string;
+  rejectedMessage?: string;
+  supportMessage?: string;
 }
 
 export interface SystemSettings {
@@ -212,8 +227,36 @@ export interface PaymentMethod {
   processingFee: number;
   processingFeeType: 'fixed' | 'percentage';
   accountNumber: string;
+  accountName?: string;
+  accountType?: 'personal' | 'merchant';
+  qrImageUrl?: string;
+  steps?: string[];
+  warning?: string;
+  notice?: string;
+  color?: string;
   instructions: string;
   sortOrder: number;
+}
+
+export interface CreatePaymentMethodInput {
+  code: PaymentProvider;
+  name: string;
+  displayName: string;
+  isActive?: boolean;
+  minAmount?: number;
+  maxAmount?: number;
+  processingFee?: number;
+  processingFeeType?: 'fixed' | 'percentage';
+  accountNumber: string;
+  accountName?: string;
+  accountType?: 'personal' | 'merchant';
+  qrImageUrl?: string;
+  steps?: string[];
+  warning?: string;
+  notice?: string;
+  color?: string;
+  instructions?: string;
+  sortOrder?: number;
 }
 
 export interface CreatePaymentInput {

@@ -93,7 +93,7 @@ const paymentRequestSchema = new Schema<IPaymentRequest>(
     },
     provider: {
       type: String,
-      enum: ['bkash', 'nagad', 'rocket'],
+      enum: ['bkash', 'nagad', 'rocket', 'upay'],
       required: true,
       index: true,
     },
@@ -117,7 +117,7 @@ const paymentRequestSchema = new Schema<IPaymentRequest>(
     description: String,
     status: {
       type: String,
-      enum: ['pending', 'processing', 'paid', 'failed', 'expired', 'cancelled'],
+      enum: ['pending', 'processing', 'paid', 'failed', 'expired', 'cancelled', 'rejected'],
       default: 'pending',
       index: true,
     },

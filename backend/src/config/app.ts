@@ -62,9 +62,14 @@ export const appConfig = {
   },
 
   sms: {
-    providers: ['bkash', 'nagad', 'rocket'] as const,
+    providers: ['bkash', 'nagad', 'rocket', 'upay'] as const,
     duplicateWindowMinutes: 10,
     amountTolerance: 0,
+  },
+
+  cache: {
+    /** TTL for public pay-settings / provider config responses. */
+    publicTtlSeconds: 60,
   },
 
   session: {

@@ -37,6 +37,7 @@ const DEFAULT_PARSER_RULES: Record<string, string> = {
     '(?:bKash|বিকাশ).*?(?:TXN|TrxID|Transaction\\s*ID|ট্রানজেকশন আইডি|ট্রাঞ্জেকশন আইডি)[:\\s]*([A-Z0-9]+)',
   nagad: '(?:Nagad|নগদ).*?(?:TXN|TrxID|Transaction\\s*ID)[:\\s]*([A-Z0-9]+)',
   rocket: '(?:Rocket|রকেট).*?(?:TXN|TrxID|Transaction\\s*ID)[:\\s]*([A-Z0-9]+)',
+  upay: '(?:Upay|Upay\\s*BD|ইপে\\s*ডিজিটাল|উপায়).*?(?:TXN|TrxID|Transaction\\s*ID)[:\\s]*([A-Z0-9]+)',
 };
 
 const PHONE_REGEX = /01\d{9}/;
@@ -45,6 +46,7 @@ const SENDER_KW: Record<string, string[]> = {
   bkash: ['bKash', 'বিকাশ'],
   nagad: ['Nagad', 'নগদ'],
   rocket: ['Rocket', 'রকেট'],
+  upay: ['Upay', 'ইপে', 'উপায়'],
 };
 
 /* ────────── Helpers ────────── */
@@ -55,7 +57,7 @@ async function loadParserRegex(): Promise<Record<string, RegExp>> {
     const rules = smsSettings?.parserRules as Record<string, string> | undefined;
     const result: Record<string, RegExp> = {};
 
-    for (const provider of ['bkash', 'nagad', 'rocket']) {
+    for (const provider of ['bkash', 'nagad', 'rocket', 'upay']) {
       const pattern = rules?.[provider] || DEFAULT_PARSER_RULES[provider];
       result[provider] = new RegExp(pattern, 'is');
     }
@@ -79,6 +81,13 @@ function detectProvider(rawSms: string, sender: string): PaymentProvider | 'unkn
     return 'nagad';
   if (lowerSms.includes('rocket') || lowerSms.includes('রকেট') || lowerSender.includes('rocket'))
     return 'rocket';
+  if (
+    lowerSms.includes('upay') ||
+    lowerSms.includes('ইপে') ||
+    lowerSms.includes('উপায়') ||
+    lowerSender.includes('upay')
+  )
+    return 'upay';
   return 'unknown';
 }
 
@@ -199,10 +208,16 @@ export async function parseSms(
 export async function matchPendingTransaction(parsed: ParsedSmsResult) {
   if (!parsed.transactionId || !parsed.amount) return null;
 
+  // Stored payment amounts are whole-taka integers, while SMS amounts may be
+  // parsed as floats (e.g. "1,000.00" → 1000). Compare the ROUNDED amounts so
+  // an integer 1000 matches "1,000.00" but a genuinely different payment
+  // (e.g. 1000.50 → 1001) never matches.
+  const normalizedAmount = Math.round(parsed.amount);
+
   // Strategy 1: match by provider + amount + pending status (strictest)
   let match = await Transaction.findOne({
     provider: parsed.provider,
-    amount: parsed.amount,
+    amount: normalizedAmount,
     status: 'pending',
     expiresAt: { $gt: new Date() },
   }).sort({ createdAt: 1 });
@@ -221,7 +236,7 @@ export async function matchPendingTransaction(parsed: ParsedSmsResult) {
 
   // Strategy 3: amount only (widest fallback)
   match = await Transaction.findOne({
-    amount: parsed.amount,
+    amount: normalizedAmount,
     status: 'pending',
     expiresAt: { $gt: new Date() },
   }).sort({ createdAt: 1 });

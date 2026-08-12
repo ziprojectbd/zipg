@@ -94,6 +94,7 @@ import {
   processIncomingSms,
   testParser,
   getParserRules,
+  matchPendingTransaction,
 } from '../services/smsParser.service.js';
 import { SmsTransaction, Transaction } from '../models/index.js';
 import { getSettings } from '../services/systemSettings.service.js';
@@ -270,6 +271,80 @@ describe('processIncomingSms', () => {
         sender: 'bKash',
       })
     ).rejects.toThrow(AppError);
+  });
+});
+
+/* ────────── matchPendingTransaction (rounded-amount matching) ────────── */
+
+describe('matchPendingTransaction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getSettings as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('no settings'));
+  });
+
+  function mockSortResolving(doc: unknown) {
+    return (Transaction.findOne as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      sort: vi.fn().mockResolvedValue(doc),
+      then(resolve: (value: unknown) => void) { resolve(doc); },
+    }));
+  }
+
+  it('matches a stored 1000 against an SMS parsed amount of 1000.00 (rounded query)', async () => {
+    const pending = { _id: 'txn1000', amount: 1000, status: 'pending' };
+    mockSortResolving(pending);
+
+    const result = await matchPendingTransaction({
+      provider: 'bkash',
+      transactionId: '9XH7F2V1K1',
+      amount: 1000.0,
+      phone: '01712345678',
+      sender: 'bKash',
+      category: 'payment_received',
+      confidence: 1,
+      issues: [],
+      rawSms: 'Your bKash account is credited with BDT 1,000.00. TrxID 9XH7F2V1K1.',
+    });
+
+    expect(result).toBe(pending);
+    const firstQuery = (Transaction.findOne as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(firstQuery.amount).toBe(1000); // rounded integer, not 1000.0/1000.00
+  });
+
+  it('queries the rounded amount for a float like 1000.5 (→ 1001, not 1000)', async () => {
+    mockSortResolving(null);
+
+    const result = await matchPendingTransaction({
+      provider: 'bkash',
+      transactionId: 'ABC123',
+      amount: 1000.5,
+      phone: '01712345678',
+      sender: 'bKash',
+      category: 'payment_received',
+      confidence: 1,
+      issues: [],
+      rawSms: 'bKash BDT 1000.50. TrxID ABC123.',
+    });
+
+    expect(result).toBeNull();
+    // First strategy query must use the ROUNDED amount (1001), never 1000.5
+    const firstQuery = (Transaction.findOne as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(firstQuery.amount).toBe(1001);
+  });
+
+  it('returns null when parsed amount is missing', async () => {
+    const result = await matchPendingTransaction({
+      provider: 'bkash',
+      transactionId: 'XYZ',
+      amount: null,
+      phone: null,
+      sender: 'bKash',
+      category: 'unknown',
+      confidence: 0,
+      issues: [],
+      rawSms: 'no amount',
+    });
+    expect(result).toBeNull();
+    expect(Transaction.findOne).not.toHaveBeenCalled();
   });
 });
 

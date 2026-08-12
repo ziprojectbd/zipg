@@ -13,13 +13,16 @@ export function validate(schemas: ValidationSchemas) {
       if (schemas.body) {
         req.body = schemas.body.parse(req.body);
       }
+      // NOTE: `req.query` and `req.params` are getter-only accessors in
+      // Express 5 — assigning to them throws in strict mode (ESM/tsx).
+      // Validation must therefore not mutate them. Zod's `.parse()` already
+      // returns the (coerced) value, so we only check it; parsed values are
+      // re-read lazily by the controller.
       if (schemas.query) {
-        const parsed = schemas.query.parse(req.query);
-        req.query = parsed as Record<string, string>;
+        schemas.query.parse(req.query);
       }
       if (schemas.params) {
-        const parsed = schemas.params.parse(req.params);
-        req.params = parsed as Record<string, string>;
+        schemas.params.parse(req.params);
       }
       next();
     } catch (error) {

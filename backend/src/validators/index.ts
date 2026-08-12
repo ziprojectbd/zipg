@@ -29,8 +29,8 @@ export const updateUserSchema = z.object({
 
 /* ────────── Payment / Transaction ────────── */
 export const publicPaymentSchema = z.object({
-  amount: z.number().positive().max(10_000_000),
-  provider: z.enum(['bkash', 'nagad', 'rocket']),
+  amount: z.number().positive().max(10_000_000).transform(Math.round),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
   customerName: z.string().min(2).max(120).optional(),
   customerPhone: z.string().regex(/^01\d{9}$/, 'Must be a valid Bangladeshi mobile number').optional(),
   trxId: z.string().trim().min(3).max(80),
@@ -60,8 +60,11 @@ export const invoiceAccessQuerySchema = z.object({
 
 /** Invoice mint body — called by the frontend when no server-side record exists yet (legacy Main Site redirect). */
 export const invoiceMintSchema = z.object({
-  amount: z.number().positive().max(10_000_000),
-  provider: z.enum(['bkash', 'nagad', 'rocket']),
+  // Normalized to whole taka (round-to-nearest) — the main site sends the
+  // same integer it computed server-side, but we re-normalize defensively so
+  // a fractional amount can never mint a fractional invoice.
+  amount: z.number().positive().max(10_000_000).transform(Math.round),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
   currency: z.string().length(3).default('BDT').optional(),
   merchantName: z.string().trim().max(200).optional(),
   merchantAccount: z.string().trim().max(20).optional(),
@@ -69,9 +72,9 @@ export const invoiceMintSchema = z.object({
 });
 
 export const merchantPaymentSchema = z.object({
-  amount: z.number().positive().max(10_000_000),
+  amount: z.number().positive().max(10_000_000).transform(Math.round),
   currency: z.string().length(3).default('BDT'),
-  provider: z.enum(['bkash', 'nagad', 'rocket']),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
   customerName: z.string().min(2).max(120),
   customerPhone: z.string().regex(/^01\d{9}$/, 'Must be a valid Bangladeshi mobile number'),
   description: z.string().max(240).optional(),
@@ -81,7 +84,7 @@ export const merchantPaymentSchema = z.object({
 });
 
 export const updateTransactionSchema = z.object({
-  status: z.enum(['pending', 'processing', 'paid', 'failed', 'expired', 'cancelled']).optional(),
+  status: z.enum(['pending', 'processing', 'paid', 'failed', 'expired', 'cancelled', 'rejected']).optional(),
   notes: z.string().max(500).optional(),
 });
 
@@ -89,7 +92,7 @@ export const updateTransactionSchema = z.object({
 export const registerDeviceSchema = z.object({
   deviceId: z.string().min(3).max(100),
   name: z.string().min(1).max(100),
-  provider: z.enum(['bkash', 'nagad', 'rocket']),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
   phoneNumber: z.string().min(8).max(20),
   androidVersion: z.string().optional(),
   appVersion: z.string().optional(),
@@ -99,7 +102,7 @@ export const registerDeviceSchema = z.object({
 
 export const updateDeviceSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  provider: z.enum(['bkash', 'nagad', 'rocket']).optional(),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']).optional(),
   isEnabled: z.boolean().optional(),
   isApproved: z.boolean().optional(),
   phoneNumber: z.string().min(8).max(20).optional(),
@@ -120,7 +123,7 @@ export const deviceHeartbeatSchema = z.object({
 /* ────────── SMS ────────── */
 export const smsPayloadSchema = z.object({
   deviceId: z.string().min(3),
-  provider: z.enum(['bkash', 'nagad', 'rocket']),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
   transactionId: z.string().min(3).max(80),
   sender: z.string().min(1).max(30),
   phone: z.string().min(8).max(20),
@@ -185,7 +188,7 @@ export const updatePaySettingsSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   subtitle: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
-  enabledProviders: z.array(z.enum(['bkash', 'nagad', 'rocket'])).optional(),
+  enabledProviders: z.array(z.enum(['bkash', 'nagad', 'rocket', 'upay'])).optional(),
   merchantBkashNumber: z.string().max(20).optional(),
   merchantNagadNumber: z.string().max(20).optional(),
   merchantRocketNumber: z.string().max(20).optional(),
@@ -193,11 +196,26 @@ export const updatePaySettingsSchema = z.object({
     bkash: z.string().max(500),
     nagad: z.string().max(500),
     rocket: z.string().max(500),
+    upay: z.string().max(500),
   }).partial().optional(),
   showBranding: z.boolean().optional(),
   primaryColor: z.string().max(30).optional(),
   logoUrl: z.string().optional(),
   faviconUrl: z.string().optional(),
+  merchantName: z.string().max(200).optional(),
+  merchantAccount: z.string().max(30).optional(),
+  invoiceHeading: z.string().max(200).optional(),
+  invoiceDescription: z.string().max(500).optional(),
+  footerText: z.string().max(200).optional(),
+  supportEmail: z.string().max(200).optional(),
+  supportPhone: z.string().max(30).optional(),
+  pendingPaymentMessage: z.string().max(500).optional(),
+  pendingVerificationMessage: z.string().max(500).optional(),
+  paidMessage: z.string().max(500).optional(),
+  expiredMessage: z.string().max(500).optional(),
+  cancelledMessage: z.string().max(500).optional(),
+  rejectedMessage: z.string().max(500).optional(),
+  supportMessage: z.string().max(500).optional(),
 });
 
 export const updateSystemSettingsSchema = z.object({
@@ -215,6 +233,7 @@ export const updateSystemSettingsSchema = z.object({
 
 /* ────────── Payment Method ────────── */
 export const updatePaymentMethodSchema = z.object({
+  code: z.enum(['bkash', 'nagad', 'rocket', 'upay']).optional(),
   name: z.string().min(1).max(100).optional(),
   displayName: z.string().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
@@ -223,8 +242,29 @@ export const updatePaymentMethodSchema = z.object({
   processingFee: z.number().min(0).optional(),
   processingFeeType: z.enum(['fixed', 'percentage']).optional(),
   accountNumber: z.string().min(1).max(20).optional(),
+  accountName: z.string().max(200).optional(),
+  accountType: z.enum(['personal', 'merchant']).optional(),
   instructions: z.string().max(500).optional(),
+  qrImageUrl: z.string().max(1000).optional(),
+  icon: z.string().max(1000).optional(),
+  steps: z.array(z.string().max(300)).optional(),
+  warning: z.string().max(500).optional(),
+  notice: z.string().max(500).optional(),
+  color: z.string().max(30).optional(),
   sortOrder: z.number().optional(),
+});
+
+/** Create a new payment method (new provider, e.g. upay). */
+export const createPaymentMethodSchema = updatePaymentMethodSchema.extend({
+  code: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
+  name: z.string().min(1).max(100),
+  displayName: z.string().min(1).max(100),
+  accountNumber: z.string().min(1).max(20),
+});
+
+/** Reorder payment methods by array of provider codes. */
+export const reorderPaymentMethodsSchema = z.object({
+  codes: z.array(z.enum(['bkash', 'nagad', 'rocket', 'upay'])).min(1),
 });
 
 /* ────────── SMS Parser / Manual Verification ────────── */
@@ -234,14 +274,14 @@ export const rawSmsPayloadSchema = z.object({
   deviceId: z.string().min(3),
   rawSms: z.string().min(10).max(2000),
   sender: z.string().min(1).max(30),
-  provider: z.enum(['bkash', 'nagad', 'rocket']).optional(),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']).optional(),
   receivedAt: z.string().datetime().optional(),
 });
 
 /** Admin test parser endpoint */
 export const testSmsParserSchema = z.object({
   rawSms: z.string().min(10).max(2000),
-  provider: z.enum(['bkash', 'nagad', 'rocket']).optional(),
+  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']).optional(),
 });
 
 /** Admin update parser rules */

@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type TransactionStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'expired' | 'cancelled';
-export type PaymentProvider = 'bkash' | 'nagad' | 'rocket';
+export type TransactionStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'expired' | 'cancelled' | 'rejected';
+export type PaymentProvider = 'bkash' | 'nagad' | 'rocket' | 'upay';
 
 export interface ITransaction extends Document {
   transactionId: string;
@@ -43,7 +43,7 @@ const transactionSchema = new Schema<ITransaction>(
     },
     provider: {
       type: String,
-      enum: ['bkash', 'nagad', 'rocket'],
+      enum: ['bkash', 'nagad', 'rocket', 'upay'],
       required: true,
       index: true,
     },
@@ -77,7 +77,7 @@ const transactionSchema = new Schema<ITransaction>(
     },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'paid', 'failed', 'expired', 'cancelled'],
+      enum: ['pending', 'processing', 'paid', 'failed', 'expired', 'cancelled', 'rejected'],
       default: 'pending',
       index: true,
     },

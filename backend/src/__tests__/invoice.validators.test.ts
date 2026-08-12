@@ -147,4 +147,29 @@ describe('invoiceMintSchema', () => {
     // (the injection is only dangerous if the value is used in a query)
     expect(result.success).toBe(true);
   });
+
+  it('rounds fractional mint amounts to whole taka (round-to-nearest)', () => {
+    // The mint flow is the main-site redirect path: any float amount must be
+    // normalized to the same integer the main site charged. Round-to-nearest
+    // so 1000.49 → 1000, 1000.50 → 1001, 1000.99 → 1001.
+    const cases: Array<[number, number]> = [
+      [1000, 1000],
+      [1000.0, 1000],
+      [1000.49, 1000],
+      [1000.5, 1001],
+      [1000.99, 1001],
+      [7.5, 8],
+    ];
+    for (const [input, expected] of cases) {
+      const result = invoiceMintSchema.safeParse({ amount: input, provider: 'bkash' });
+      expect(result.success).toBe(true);
+      expect(result.data?.amount).toBe(expected);
+    }
+  });
+
+  it('rejects non-numeric amounts', () => {
+    for (const bad of ['1000', '1e3', '', null, NaN, Infinity]) {
+      expect(invoiceMintSchema.safeParse({ amount: bad, provider: 'bkash' }).success).toBe(false);
+    }
+  });
 });

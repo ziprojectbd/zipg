@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, Bell, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, Copy, Clock, CreditCard, ExternalLink, FileText, Globe, Info, KeyRound, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity } from "lucide-react";
+import { ArrowUpRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Copy, Clock, CreditCard, ExternalLink, FileText, Globe, Info, KeyRound, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import "./styles.css";
@@ -160,6 +160,7 @@ function ResourcePage({ title, icon: I, description, button, children }: { title
 /* ────────── Dashboard ────────── */
 function Dashboard() {
   const [overview, setOverview] = useState<any>(null);
+  const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -172,8 +173,20 @@ function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Provider icons for the breakdown rows (DB-driven /api/public/providers).
+  useEffect(() => {
+    fetch(`${API_URL}/api/public/providers`)
+      .then((res) => res.json())
+      .then((json) => { const list = Array.isArray(json?.data?.methods) ? json.data.methods : []; if (list.length > 0) setProviders(list); })
+      .catch(() => {});
+  }, []);
+
   const m = overview?.metrics;
   const fmt = (v: number) => `৳ ${(v || 0).toLocaleString("en-BD")}`;
+  const providerIcon = (name: string) => {
+    const hit = providers.find((p) => p.name === name || p.code === name?.toLowerCase());
+    return hit?.icon || "";
+  };
 
   return (
     <>
@@ -215,7 +228,7 @@ function Dashboard() {
             <React.Fragment key={p.name}>
               <div className="provider-row">
                 <div className="provider-name">
-                  <span className={`provider-logo ${p.name?.toLowerCase()}`}>{p.name?.[0]}</span>
+                  <span className={`provider-logo ${p.name?.toLowerCase()}`}>{providerIcon(p.name) ? <img src={providerIcon(p.name)} alt={p.name} /> : p.name?.[0]}</span>
                   <div><strong>{p.name}</strong><small>{p.count} transactions</small></div>
                 </div>
                 <strong>৳ {p.revenue?.toLocaleString?.("en-BD")}</strong>
@@ -400,6 +413,14 @@ function PaySettingsPage() {
   if (loading) return <div className="content"><p style={{ color: "var(--muted)" }}>Loading settings...</p></div>;
 
   const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "#0d1119", color: "var(--text)" } as const;
+  const labelStyle = { display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 } as const;
+
+  const renderMsg = (key: string, label: string, rows = 3) => (
+    <label style={labelStyle}>
+      {label}
+      <textarea rows={rows} value={settings[key] || ""} onChange={(e) => update(key, e.target.value)} style={inputStyle} />
+    </label>
+  );
 
   return (
     <div className="resource-page">
@@ -407,44 +428,79 @@ function PaySettingsPage() {
         <div><div className="resource-title"><div className="metric-icon purple"><Palette size={19} /></div><h2>Pay Settings</h2></div><p>Customize the public payment page.</p></div>
         <button className="primary-btn" onClick={save} disabled={saving}>{saving ? "Saving..." : "Save changes"}</button>
       </div>
+
       <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Branding</h3>
         <div style={{ display: "grid", gap: 16 }}>
-          <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
-            Page Title <input type="text" value={settings.title || ""} onChange={(e) => update("title", e.target.value)} style={inputStyle} />
+          <label style={labelStyle}>Page Title <input type="text" value={settings.title || ""} onChange={(e) => update("title", e.target.value)} style={inputStyle} /></label>
+          <label style={labelStyle}>Subtitle <input type="text" value={settings.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} style={inputStyle} /></label>
+          <label style={labelStyle}>Description <textarea value={settings.description || ""} onChange={(e) => update("description", e.target.value)} rows={3} style={inputStyle} /></label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <label style={labelStyle}>Logo URL <input type="text" placeholder="https://..." value={settings.logoUrl || ""} onChange={(e) => update("logoUrl", e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Favicon URL <input type="text" placeholder="https://..." value={settings.faviconUrl || ""} onChange={(e) => update("faviconUrl", e.target.value)} style={inputStyle} /></label>
+          </div>
+          <label style={labelStyle}>Footer Text <input type="text" value={settings.footerText || ""} onChange={(e) => update("footerText", e.target.value)} style={inputStyle} /></label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <label style={labelStyle}>Support Email <input type="email" value={settings.supportEmail || ""} onChange={(e) => update("supportEmail", e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Support Phone <input type="text" value={settings.supportPhone || ""} onChange={(e) => update("supportPhone", e.target.value)} style={inputStyle} /></label>
+          </div>
+          <label style={labelStyle}>Primary Color <input type="color" value={settings.primaryColor || "#8b5cf6"} onChange={(e) => update("primaryColor", e.target.value)} style={{ ...inputStyle, padding: "4px 13px", height: 44 }} /></label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#cbd0dc", fontSize: 12 }}>
+            <input type="checkbox" checked={settings.showBranding ?? true} onChange={(e) => update("showBranding", e.target.checked)} /> Show branding on checkout page
           </label>
-          <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
-            Subtitle <input type="text" value={settings.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} style={inputStyle} />
-          </label>
-          <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
-            Description <textarea value={settings.description || ""} onChange={(e) => update("description", e.target.value)} rows={3} style={inputStyle} />
-          </label>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Invoice Page</h3>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <label style={labelStyle}>Merchant Name <input type="text" value={settings.merchantName || ""} onChange={(e) => update("merchantName", e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Merchant Account <input type="text" value={settings.merchantAccount || ""} onChange={(e) => update("merchantAccount", e.target.value)} style={inputStyle} /></label>
+          </div>
+          <label style={labelStyle}>Invoice Heading <input type="text" value={settings.invoiceHeading || ""} onChange={(e) => update("invoiceHeading", e.target.value)} style={inputStyle} /></label>
+          <label style={labelStyle}>Invoice Description <textarea rows={3} value={settings.invoiceDescription || ""} onChange={(e) => update("invoiceDescription", e.target.value)} style={inputStyle} /></label>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Status Messages</h3>
+        <div style={{ display: "grid", gap: 16 }}>
+          {renderMsg("pendingPaymentMessage", "Pending Payment Message")}
+          {renderMsg("pendingVerificationMessage", "Pending Verification Message")}
+          {renderMsg("paidMessage", "Paid Message")}
+          {renderMsg("expiredMessage", "Expired Message")}
+          {renderMsg("cancelledMessage", "Cancelled Message")}
+          {renderMsg("rejectedMessage", "Rejected Message")}
+          {renderMsg("supportMessage", "Support Message")}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Checkout Instructions (legacy checkout page)</h3>
+        <div style={{ display: "grid", gap: 16 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>bKash Number <input type="text" value={settings.merchantBkashNumber || ""} onChange={(e) => update("merchantBkashNumber", e.target.value)} style={inputStyle} /></label>
-            <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>Nagad Number <input type="text" value={settings.merchantNagadNumber || ""} onChange={(e) => update("merchantNagadNumber", e.target.value)} style={inputStyle} /></label>
-            <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>Rocket Number <input type="text" value={settings.merchantRocketNumber || ""} onChange={(e) => update("merchantRocketNumber", e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>bKash Number <input type="text" value={settings.merchantBkashNumber || ""} onChange={(e) => update("merchantBkashNumber", e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Nagad Number <input type="text" value={settings.merchantNagadNumber || ""} onChange={(e) => update("merchantNagadNumber", e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Rocket Number <input type="text" value={settings.merchantRocketNumber || ""} onChange={(e) => update("merchantRocketNumber", e.target.value)} style={inputStyle} /></label>
           </div>
           {[
-            { key: "bkash", label: "bKash", code: "bKash" },
-            { key: "nagad", label: "Nagad", code: "Nagad" },
-            { key: "rocket", label: "Rocket", code: "Rocket" },
+            { key: "bkash", label: "bKash" },
+            { key: "nagad", label: "Nagad" },
+            { key: "rocket" },
+            { key: "upay", label: "Upay" },
           ].filter((p) => settings.enabledProviders?.includes(p.key)).map((p) => (
-            <label key={p.key} style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+            <label key={p.key} style={labelStyle}>
               {p.label} Instructions
               <textarea
                 rows={3}
-                placeholder={`e.g. Send money to the ${p.code} number shown and enter the TRX ID.`}
+                placeholder={`e.g. Send money to the ${p.key} number shown and enter the TRX ID.`}
                 value={settings.instructions?.[p.key] || ""}
                 onChange={(e) => update("instructions", { ...(settings.instructions || {}), [p.key]: e.target.value })}
                 style={inputStyle}
               />
             </label>
           ))}
-          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#cbd0dc", fontSize: 12 }}>
-            <input type="checkbox" checked={settings.showBranding ?? true} onChange={(e) => update("showBranding", e.target.checked)} /> Show branding on checkout page
-          </label>
-          <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
-            Primary Color <input type="color" value={settings.primaryColor || "#8b5cf6"} onChange={(e) => update("primaryColor", e.target.value)} style={{ ...inputStyle, padding: "4px 13px", height: 44 }} />
-          </label>
         </div>
       </div>
     </div>
@@ -452,40 +508,272 @@ function PaySettingsPage() {
 }
 
 /* ────────── Payment Methods ────────── */
+type MethodForm = {
+  code: string; name: string; displayName: string; accountNumber: string; accountName: string;
+  accountType: "personal" | "merchant"; icon: string; qrImageUrl: string; instructions: string; steps: string;
+  warning: string; notice: string; color: string; minAmount: number; maxAmount: number;
+  processingFee: number; processingFeeType: "fixed" | "percentage"; isActive: boolean;
+};
+
+const EMPTY_METHOD: MethodForm = {
+  code: "", name: "", displayName: "", accountNumber: "", accountName: "",
+  accountType: "merchant", icon: "", qrImageUrl: "", instructions: "", steps: "", warning: "", notice: "",
+  color: "#F37021", minAmount: 10, maxAmount: 200000, processingFee: 0, processingFeeType: "percentage", isActive: true,
+};
+
 function PaymentMethodsPage() {
   const [methods, setMethods] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<MethodForm | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [step, setStep] = useState<"list" | "edit">("list");
 
-  useEffect(() => {
+  const reload = () => {
+    setLoading(true);
     fetch(`${API_URL}/api/admin/payment-methods`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((res) => res.json())
       .then((data) => { if (data.success && data.data?.methods) setMethods(data.data.methods); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(reload, []);
+
+  const apiCall = async (path: string, init?: RequestInit) => {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json", ...(init?.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  };
+
+  const startCreate = () => { setEditing({ ...EMPTY_METHOD, steps: "Open your app\nChoose Send Money\nEnter account number" }); setCreating(true); setStep("edit"); setNotice(""); };
+  const startEdit = (m: any) => {
+    setEditing({
+      code: m.code, name: m.name || m.code, displayName: m.displayName || "", accountNumber: m.accountNumber || "",
+      accountName: m.accountName || "", accountType: m.accountType || "merchant", icon: m.icon || "",
+      qrImageUrl: m.qrImageUrl || "", instructions: m.instructions || "", steps: (m.steps || []).join("\n"), warning: m.warning || "",
+      notice: m.notice || "", color: m.color || FALLBACK_PROVIDER_THEME[m.code]?.color || "#8b5cf6",
+      minAmount: m.minAmount ?? 10, maxAmount: m.maxAmount ?? 200000, processingFee: m.processingFee ?? 0,
+      processingFeeType: m.processingFeeType || "percentage", isActive: m.isActive !== false,
+    });
+    setCreating(false); setStep("edit"); setNotice("");
+  };
+
+  // ── Steps (How it works) editor: add / remove / reorder lines ──
+  const currentSteps = (editing?.steps || "").split("\n").filter(Boolean);
+  const updateStepLine = (idx: number, value: string) => {
+    setEditing((s) => (s ? { ...s, steps: currentSteps.map((line, i) => (i === idx ? value : line)).join("\n") } : s));
+  };
+  const addStepLine = () => {
+    setEditing((s) => (s ? { ...s, steps: currentSteps.concat("").join("\n") } : s));
+  };
+  const removeStepLine = (idx: number) => {
+    setEditing((s) => (s ? { ...s, steps: currentSteps.filter((_, i) => i !== idx).join("\n") } : s));
+  };
+  const moveStepLine = (idx: number, dir: -1 | 1) => {
+    setEditing((s) => {
+      if (!s) return s;
+      const list = [...currentSteps];
+      const target = idx + dir;
+      if (target < 0 || target >= list.length) return s;
+      [list[idx], list[target]] = [list[target], list[idx]];
+      return { ...s, steps: list.join("\n") };
+    });
+  };
+
+  const saveMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    // The backend requires these fields (non-empty) for a new provider.
+    if (!editing.displayName.trim() || !editing.accountNumber.trim()) {
+      setNotice("Display name and merchant account number are required.");
+      return;
+    }
+    setSaving(true); setNotice("");
+    try {
+      // Strip empty-string optional fields so the backend schema validates cleanly.
+      const payload: Record<string, unknown> = {
+        ...editing,
+        steps: editing.steps.split("\n").map((s) => s.trim()).filter(Boolean),
+        name: editing.name || editing.code,
+      };
+      for (const key of Object.keys(payload)) {
+        if (payload[key] === "" || ((key === "minAmount" || key === "maxAmount") && payload[key] === 0)) {
+          payload[key] = undefined;
+        }
+      }
+      if (creating) await apiCall("/api/admin/payment-methods", { method: "POST", body: JSON.stringify(payload) });
+      else await apiCall(`/api/admin/payment-methods/${encodeURIComponent(editing.code)}`, { method: "PUT", body: JSON.stringify(payload) });
+      setNotice(creating ? "Payment method created." : "Payment method updated.");
+      setStep("list"); setEditing(null); reload();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Failed to save payment method");
+    } finally { setSaving(false); }
+  };
+
+  const toggleActive = async (m: any) => {
+    try { await apiCall(`/api/admin/payment-methods/${encodeURIComponent(m.code)}`, { method: "PUT", body: JSON.stringify({ isActive: !m.isActive }) }); reload(); }
+    catch (err) { setNotice(err instanceof Error ? err.message : "Update failed"); }
+  };
+
+  const move = async (index: number, dir: -1 | 1) => {
+    const next = [...methods];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setMethods(next);
+    try { await apiCall("/api/admin/payment-methods/reorder", { method: "POST", body: JSON.stringify({ codes: next.map((m) => m.code) }) }); }
+    catch (err) { setNotice(err instanceof Error ? err.message : "Reorder failed"); reload(); }
+  };
+
+  const remove = async (m: any) => {
+    if (!window.confirm(`Delete payment method "${m.code}"? This cannot be undone.`)) return;
+    try { await apiCall(`/api/admin/payment-methods/${encodeURIComponent(m.code)}`, { method: "DELETE" }); reload(); }
+    catch (err) { setNotice(err instanceof Error ? err.message : "Delete failed"); }
+  };
+
+  const field = (key: keyof MethodForm, label: string, placeholder = "") => (
+    <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+      {label}
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={String(editing?.[key] ?? "")}
+        onChange={(e) => { const v = e.target.value; setEditing((s) => (s ? { ...s, [key]: key === "processingFee" || key === "minAmount" || key === "maxAmount" ? Number(v) : v } as MethodForm : s)); }}
+        style={inputStyle}
+      />
+    </label>
+  );
+
+  const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "#0d1119", color: "var(--text)" } as const;
+
+  if (step === "edit" && editing) {
+    return (
+      <div className="resource-page">
+        <div className="page-intro">
+          <div><div className="resource-title"><div className="metric-icon purple"><CircleDollarSign size={19} /></div><h2>{creating ? "Add Payment Method" : `Edit ${providerLabel(editing.code)}`}</h2></div><p>{creating ? "Create a new payment provider (e.g. Upay)." : "Configure the provider's display, account, QR and instructions."}</p></div>
+          <button className="outline-btn" onClick={() => { setStep("list"); setEditing(null); }}>Back</button>
+        </div>
+        {notice && <div className="form-error" style={{ marginBottom: 14 }}>{notice}</div>}
+        <div className="card" style={{ padding: 24 }}>
+          <form onSubmit={saveMethod} style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {field("code", "Provider Code", "bkash")}
+              {field("displayName", "Display Name (e.g. bKash)", "bKash")}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {field("accountNumber", "Account Number", "01XXXXXXXXX")}
+              {field("accountName", "Account Name", "Merchant name")}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+                Account Type
+                <select value={editing.accountType} onChange={(e) => setEditing((s) => (s ? { ...s, accountType: e.target.value as "personal" | "merchant" } : s))} style={inputStyle}>
+                  <option value="merchant">Merchant</option>
+                  <option value="personal">Personal</option>
+                </select>
+              </label>
+              {field("color", "Theme Color (hex)", "#F37021")}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {field("icon", "Provider Logo URL", "https://...")}
+              {field("qrImageUrl", "Merchant QR Image URL", "https://...")}
+            </div>
+            <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+              Instructions
+              <textarea rows={3} placeholder="How customers should pay with this provider." value={editing.instructions || ""} onChange={(e) => setEditing((s) => (s ? { ...s, instructions: e.target.value } : s))} style={inputStyle} />
+            </label>
+            <div style={{ display: "block" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+                <span>How It Works / Steps</span>
+                <button type="button" onClick={addStepLine} style={{ background: "none", border: "none", color: "var(--purple)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}><Plus size={13} style={{ verticalAlign: "-2px" }} /> Add step</button>
+              </div>
+              {currentSteps.map((line, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7 }}>
+                  <span style={{ color: "var(--muted)", display: "inline-flex" }}><GripVertical size={15} /></span>
+                  <input
+                    type="text"
+                    value={line}
+                    placeholder={`Step ${idx + 1}`}
+                    onChange={(e) => updateStepLine(idx, e.target.value)}
+                    style={inputStyle}
+                  />
+                  <button type="button" onClick={() => moveStepLine(idx, -1)} disabled={idx === 0} className="icon-btn" title="Move up"><ChevronUp size={14} /></button>
+                  <button type="button" onClick={() => moveStepLine(idx, 1)} disabled={idx === currentSteps.length - 1} className="icon-btn" title="Move down"><ChevronDown size={14} /></button>
+                  <button type="button" onClick={() => removeStepLine(idx)} className="icon-btn" title="Remove step"><X size={14} /></button>
+                </div>
+              ))}
+              {currentSteps.length === 0 && (
+                <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 7 }}>No steps configured. Add a step to show the "How it works" list on the invoice.</p>
+              )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {field("warning", "Warning", "e.g. Only pay the exact amount shown")}
+              {field("notice", "Notice", "e.g. No fee for this payment")}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+              {field("minAmount", "Min Amount (BDT)", "10")}
+              {field("maxAmount", "Max Amount (BDT)", "200000")}
+              {field("processingFee", "Processing Fee", "0")}
+              <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+                Fee Type
+                <select value={editing.processingFeeType} onChange={(e) => setEditing((s) => (s ? { ...s, processingFeeType: e.target.value as "fixed" | "percentage" } : s))} style={inputStyle}>
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed (BDT)</option>
+                </select>
+              </label>
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#cbd0dc", fontSize: 12 }}>
+              <input type="checkbox" checked={editing.isActive} onChange={(e) => setEditing((s) => (s ? { ...s, isActive: e.target.checked } : s))} /> Active (visible on the invoice page)
+            </label>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="primary-btn" type="submit" disabled={saving}>{saving ? "Saving..." : (creating ? "Create method" : "Save changes")}</button>
+              <button className="outline-btn" type="button" onClick={() => { setStep("list"); setEditing(null); }}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="resource-page">
       <div className="page-intro">
         <div><div className="resource-title"><div className="metric-icon purple"><CircleDollarSign size={19} /></div><h2>Payment Methods</h2></div><p>Configure supported payment providers and their settings.</p></div>
+        <button className="primary-btn" onClick={startCreate}><Plus size={15} /> Add provider</button>
       </div>
+      {notice && <div className="form-error" style={{ marginBottom: 14 }}>{notice}</div>}
       <div className="card" style={{ padding: "20px 20px 7px" }}>
         <div className="table-wrap" style={{ margin: "0 -20px -7px" }}>
           <table>
-            <thead><tr><th>Provider</th><th>Display Name</th><th>Account Number</th><th>Status</th><th>Fee</th><th>Min/Max</th></tr></thead>
+            <thead><tr><th>Order</th><th>Provider</th><th>Display Name</th><th>Account</th><th>QR</th><th>Status</th><th>Fee</th><th>Min/Max</th><th>Actions</th></tr></thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>Loading...</td></tr>
+                <tr><td colSpan={9} style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>Loading...</td></tr>
               ) : methods.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>No payment methods configured</td></tr>
-              ) : methods.map((m) => (
+                <tr><td colSpan={9} style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>No payment methods configured</td></tr>
+              ) : methods.map((m, i) => (
                 <tr key={m._id}>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} title="Move up"><ChevronUp size={14} /></button>
+                    <button className="icon-btn" onClick={() => move(i, 1)} disabled={i === methods.length - 1} title="Move down"><ChevronDown size={14} /></button>
+                  </td>
                   <td><span className={`mini-provider ${m.code}`}>{m.code}</span></td>
                   <td>{m.displayName}</td>
-                  <td style={{ fontFamily: "monospace" }}>{m.accountNumber}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{m.accountNumber}{m.accountName ? <div style={{ color: "var(--muted)" }}>{m.accountName}</div> : null}</td>
+                  <td>{m.qrImageUrl ? <a href={m.qrImageUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>View</a> : "—"}</td>
                   <td>{m.isActive ? <span style={{ color: "var(--green)" }}>Active</span> : <span style={{ color: "#e97389" }}>Disabled</span>}</td>
                   <td>{m.processingFee}{m.processingFeeType === "percentage" ? "%" : " BDT"}</td>
                   <td>৳{m.minAmount} - ৳{m.maxAmount}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button className="icon-btn" onClick={() => startEdit(m)} title="Edit"><Settings size={14} /></button>
+                    <button className="icon-btn" onClick={() => toggleActive(m)} title={m.isActive ? "Disable" : "Enable"}>{m.isActive ? <WifiOff size={14} /> : <Wifi size={14} />}</button>
+                    <button className="icon-btn" onClick={() => remove(m)} title="Delete"><X size={14} /></button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -687,6 +975,63 @@ function Landing() {
 }
 
 /* ────────── Checkout (public) ────────── */
+/* ────────── Provider config (DB-driven via /api/public/providers) ────────── */
+type ProviderConfig = {
+  code: string;
+  displayName: string;
+  icon?: string;
+  accountNumber: string;
+  accountName?: string;
+  accountType?: "personal" | "merchant";
+  qrImageUrl?: string;
+  instructions?: string;
+  steps?: string[];
+  warning?: string;
+  notice?: string;
+  color?: string;
+  minAmount?: number;
+  maxAmount?: number;
+};
+
+type InvoiceStatus = "pending" | "processing" | "paid" | "failed" | "expired" | "cancelled" | "rejected";
+
+const FALLBACK_PROVIDERS: ProviderConfig[] = [
+  {
+    code: "bkash", displayName: "bKash", accountNumber: "", color: "#E2136E",
+    steps: ["Open your bKash App", "Choose Send Money", "Enter merchant account number", "Confirm & complete the payment"],
+  },
+  { code: "nagad", displayName: "Nagad", accountNumber: "", color: "#F58220" },
+  { code: "rocket", displayName: "Rocket", accountNumber: "", color: "#7A1FA2" },
+  { code: "upay", displayName: "Upay", accountNumber: "", color: "#F37021" },
+];
+
+const FALLBACK_PROVIDER_THEME: Record<string, { color: string }> = {
+  bkash: { color: "#E2136E" },
+  nagad: { color: "#F58220" },
+  rocket: { color: "#7A1FA2" },
+  upay: { color: "#F37021" },
+};
+
+const FALLBACK_SUPPORT: Record<string, { number: string }> = {
+  bkash: { number: "16247" },
+  nagad: { number: "16167" },
+  rocket: { number: "16216" },
+  upay: { number: "16267" },
+};
+
+function providerLabel(p: string) {
+  if (p === "bkash") return "bKash";
+  if (p === "upay") return "Upay";
+  return p ? p[0].toUpperCase() + p.slice(1) : "Provider";
+}
+
+/** Find a provider config by code; falls back to built-in defaults. */
+function findProvider(providers: ProviderConfig[], code: string): ProviderConfig {
+  const hit = providers.find((m) => m.code === code);
+  const fallback = FALLBACK_PROVIDERS.find((m) => m.code === code) || FALLBACK_PROVIDERS[0];
+  return { ...fallback, ...hit, steps: hit?.steps?.length ? hit.steps : fallback.steps };
+}
+
 type CheckoutPayment = {
   id: string;
   requestId?: string;
@@ -700,8 +1045,15 @@ type PaySettings = {
   title: string; subtitle: string; description: string;
   enabledProviders: string[]; merchantBkashNumber: string;
   merchantNagadNumber: string; merchantRocketNumber: string;
-  instructions: { bkash: string; nagad: string; rocket: string };
+  instructions: { bkash: string; nagad: string; rocket: string; upay?: string };
   showBranding: boolean; primaryColor: string;
+  logoUrl?: string; faviconUrl?: string;
+  merchantName?: string; merchantAccount?: string;
+  invoiceHeading?: string; invoiceDescription?: string;
+  footerText?: string; supportEmail?: string; supportPhone?: string;
+  pendingPaymentMessage?: string; pendingVerificationMessage?: string;
+  paidMessage?: string; expiredMessage?: string; cancelledMessage?: string;
+  rejectedMessage?: string; supportMessage?: string;
 };
 
 const defaultPaySettings: PaySettings = {
@@ -711,12 +1063,23 @@ const defaultPaySettings: PaySettings = {
   merchantBkashNumber: "01614602084", merchantNagadNumber: "01614602084", merchantRocketNumber: "01614602084",
   instructions: { bkash: "Send money to the bKash number shown.", nagad: "Send money to the Nagad number shown.", rocket: "Send money to the Rocket number shown." },
   showBranding: true, primaryColor: "#8b5cf6",
+  merchantName: "ZI Premium Services", merchantAccount: "01614602084",
+  invoiceHeading: "Complete Your Payment", invoiceDescription: "Complete your payment and enter your transaction details below to confirm.",
+  footerText: "Powered by ZiPAY", supportEmail: "support@zipremiumservices.com", supportPhone: "01614602084",
+  pendingPaymentMessage: "Please complete your payment within the time shown. After sending money, enter your details below to confirm.",
+  pendingVerificationMessage: "Your payment has been submitted and is now pending verification. We will confirm and verify your payment shortly — this usually takes a few minutes.",
+  paidMessage: "Your payment has been verified and completed successfully. Thank you for your payment.",
+  expiredMessage: "This invoice has expired. Please go back to the store and start a new payment.",
+  cancelledMessage: "This payment was cancelled. No money has been taken. Please go back to the store if you still want to pay.",
+  rejectedMessage: "This payment could not be verified and has been rejected. If you believe this is a mistake, please contact support.",
+  supportMessage: "Having trouble? Contact our support team for assistance.",
 };
 
 function Checkout() {
   const [settings, setSettings] = useState<PaySettings>(defaultPaySettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const [provider, setProvider] = useState<"bkash" | "nagad" | "rocket">("bkash");
+  const [providers, setProviders] = useState<ProviderConfig[]>([]);
+  const [provider, setProvider] = useState<"bkash" | "nagad" | "rocket" | "upay">("bkash");
   const [form, setForm] = useState({ amount: "", trxId: "" });
   const [payment, setPayment] = useState<CheckoutPayment | null>(null);
   const [error, setError] = useState("");
@@ -731,6 +1094,17 @@ function Checkout() {
       })
       .catch(() => setSettings(defaultPaySettings))
       .finally(() => setSettingsLoaded(true));
+  }, []);
+
+  // Provider icons for the payment method buttons (DB-driven /api/public/providers).
+  useEffect(() => {
+    fetch(`${API_URL}/api/public/providers`)
+      .then((res) => res.json())
+      .then((json) => {
+        const list = Array.isArray(json?.data?.methods) ? json.data.methods : [];
+        if (list.length > 0) setProviders(list);
+      })
+      .catch(() => {});
   }, []);
 
   const update = (key: string, value: string) => setForm((c) => ({ ...c, [key]: value }));
@@ -753,11 +1127,11 @@ function Checkout() {
     } finally { setLoading(false); }
   };
 
-  const providerLabel = (p: string) => p === "bkash" ? "bKash" : p[0].toUpperCase() + p.slice(1);
   const merchantNumbers: Record<string, string> = {
     bkash: settings.merchantBkashNumber,
     nagad: settings.merchantNagadNumber,
     rocket: settings.merchantRocketNumber,
+    upay: settings.merchantNagadNumber, // legacy checkout; Upay merchants use Nagad number fallback
   };
 
   if (!settingsLoaded) {
@@ -825,9 +1199,9 @@ function Checkout() {
           <div className="provider-selector">
             <span className="field-label">Choose payment method</span>
             <div className="provider-options">
-              {(settings.enabledProviders as ("bkash" | "nagad" | "rocket")[]).map((item) => (
+              {(settings.enabledProviders as ("bkash" | "nagad" | "rocket" | "upay")[]).map((item) => (
                 <button type="button" key={item} className={`provider-option ${provider === item ? "selected" : ""}`} onClick={() => setProvider(item)}>
-                  <span className={`provider-logo ${item}`}>{item[0]}</span><strong>{providerLabel(item)}</strong>
+                  <span className={`provider-logo ${item}`}>{findProvider(providers, item).icon ? <img src={findProvider(providers, item).icon} alt={providerLabel(item)} /> : item[0]}</span><strong>{providerLabel(item)}</strong>
                 </button>
               ))}
             </div>
@@ -854,39 +1228,44 @@ function Checkout() {
 }
 
 // ── Provider support numbers ────────────────────────────────────
-const PROVIDER_SUPPORT: Record<"bkash" | "nagad" | "rocket", { number: string }> = {
-  bkash:  { number: "16247" },
-  nagad:  { number: "16167" },
-  rocket: { number: "16216" },
-};
-
-function CustomerSupportFooter({ provider }: { provider: "bkash" | "nagad" | "rocket" }) {
-  const support = PROVIDER_SUPPORT[provider];
-
+function CustomerSupportFooter({ supportNumber, supportText }: { supportNumber: string; supportText?: string }) {
   return (
     <div className="bk-support">
       <div className="bk-divider" />
       <PhoneCall size={14} className="bk-support-icon" />
       <p className="bk-support-title">Need Help?</p>
-      <a className="bk-support-tel" href={`tel:${support.number}`}>
-        Call {support.number}
-      </a>
+      {supportNumber ? (
+        <a className="bk-support-tel" href={`tel:${supportNumber}`}>
+          Call {supportNumber}
+        </a>
+      ) : (
+        <p style={{ color: "var(--muted)", fontSize: 12 }}>{supportText || "Contact support"}</p>
+      )}
     </div>
   );
 }
 
-const PROVIDER_THEME: Record<"bkash" | "nagad" | "rocket", { color: string }> = {
-  bkash: { color: "#E2136E" },
-  nagad: { color: "#F58220" },
-  rocket: { color: "#7A1FA2" },
-};
-
 /* ────────── Invoice Payment Page (from main site) ────────── */
+
+/**
+ * Strictly coerce a URL/query/API amount to a whole-taka integer. Accepts only
+ * plain decimal strings/numbers ("1000", "1000.49" → 1000); anything else
+ * (empty, "1e3", "1000abc") returns 0. Never relies on loose Number() coercion.
+ */
+function toWholeTaka(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? Math.round(value) : 0;
+  if (typeof value !== "string") return 0;
+  const s = value.trim();
+  if (!/^\d+(\.\d+)?$/.test(s)) return 0;
+  return Math.round(Number(s));
+}
+
 function InvoicePayment() {
   const [params] = useSearchParams();
   const [settings, setSettings] = useState<PaySettings>(defaultPaySettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const [provider, setProvider] = useState<"bkash" | "nagad" | "rocket">("bkash");
+  const [providers, setProviders] = useState<ProviderConfig[]>([]);
+  const [provider, setProvider] = useState<string>("bkash");
   const [trxId, setTrxId] = useState("");
   const [payerNumber, setPayerNumber] = useState("");
   const [formStep, setFormStep] = useState<"phone" | "trx">("phone");
@@ -905,8 +1284,11 @@ function InvoicePayment() {
     orderId: string;
     amount: number;
     provider: string;
-    status: string;
+    status: InvoiceStatus;
     invoiceExpiresAt?: string;
+    customerName?: string;
+    customerPhone?: string;
+    transactionId?: string;
   } | null>(null);
   const [invoiceError, setInvoiceError] = useState("");
 
@@ -935,6 +1317,17 @@ function InvoicePayment() {
       .then((data) => { if (data?.title) setSettings(data); })
       .catch(() => setSettings(defaultPaySettings))
       .finally(() => setSettingsLoaded(true));
+  }, []);
+
+  // ── Load active providers (DB-driven list) ──
+  useEffect(() => {
+    fetch(`${API_URL}/api/public/providers`)
+      .then((res) => res.json())
+      .then((json) => {
+        const list = Array.isArray(json?.data?.methods) ? json.data.methods : [];
+        if (list.length > 0) setProviders(list);
+      })
+      .catch(() => {});
   }, []);
 
   // ── Invoice data — secure token-gated flow / legacy requestId / cb-only mint ──
@@ -999,11 +1392,11 @@ function InvoicePayment() {
         const decoded = decodeURIComponent(atob(cb.replace(/-/g, "+").replace(/_/g, "/")));
         const cbParams = new URLSearchParams(decoded);
         decodedProvider = cbParams.get("provider") || params.get("provider") || "bkash";
-        decodedAmount = Number(cbParams.get("amount")) || Number(params.get("amount")) || 0;
+        decodedAmount = toWholeTaka(cbParams.get("amount")) || toWholeTaka(params.get("amount")) || 0;
         decodedOrderId = cbParams.get("orderId") || "";
       } catch {
         decodedProvider = params.get("provider") || "bkash";
-        decodedAmount = Number(params.get("amount")) || 0;
+        decodedAmount = toWholeTaka(params.get("amount")) || 0;
       }
       if (!decodedAmount) { setInvoiceError("Invalid payment amount"); setSettingsLoaded(true); return; }
 
@@ -1052,9 +1445,18 @@ function InvoicePayment() {
 
   // All display values come from the backend when a requestId is present.
   // Otherwise (merchant direct invoice with only provider/amount/cb) fall back to query params.
-  const resolvedProvider = (invoiceData?.provider as "bkash" | "nagad" | "rocket") ||
-    ((params.get("provider") as "bkash" | "nagad" | "rocket") || "bkash");
-  const amount = invoiceData?.amount ?? Number(params.get("amount")) ?? 0;
+  const resolvedProvider =
+    (invoiceData?.provider as string) ||
+    (params.get("provider") as string) ||
+    (providers.length > 0 ? providers[0].code : settings.enabledProviders?.[0]) ||
+    "bkash";
+  const amount = toWholeTaka(invoiceData?.amount) || toWholeTaka(params.get("amount")) || 0;
+
+  // Provider config from the DB-driven list (falls back to built-in defaults).
+  const resolvedProviderConfig = findProvider(providers, resolvedProvider);
+  const providerColor = resolvedProviderConfig.color || FALLBACK_PROVIDER_THEME[resolvedProvider]?.color || "#8b5cf6";
+  const providerSupportNumber = settings.supportPhone || "";
+  const providerAccount = invoiceData?.merchantAccount || resolvedProviderConfig.accountNumber || settings.merchantAccount || "";
 
   // Resolve return URL. Prefer explicit cb param, else derive from document.referrer.
   let returnUrl = "";
@@ -1070,13 +1472,6 @@ function InvoicePayment() {
     }
   } catch { returnUrl = ""; }
 
-  const providerLabel = (p: string) => p === "bkash" ? "bKash" : p[0].toUpperCase() + p.slice(1);
-  const merchantNumbers: Record<string, string> = {
-    bkash: settings.merchantBkashNumber,
-    nagad: settings.merchantNagadNumber,
-    rocket: settings.merchantRocketNumber,
-  };
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trxId.trim() || !payerNumber.trim() || submitting) return;
@@ -1088,7 +1483,7 @@ function InvoicePayment() {
       // Persist confirmed details locally as a fallback when no return URL is known.
       sessionStorage.setItem("zi-pay-invoice-confirm", JSON.stringify({
         provider: resolvedProvider,
-        amount: Number(amount) || 0,
+        amount: toWholeTaka(amount),
         trxId: confirmTrx,
         payerNumber: confirmedPayer,
         status: "pending",
@@ -1098,7 +1493,7 @@ function InvoicePayment() {
       // Pass both trxId and payerNumber via query since sessionStorage is origin-scoped.
       if (returnUrl) {
         const sep = returnUrl.includes("?") ? "&" : "?";
-        window.location.href = `${returnUrl}${sep}provider=${resolvedProvider}&amount=${Number(amount) || 0}&trxId=${encodeURIComponent(confirmTrx)}&payerNumber=${encodeURIComponent(confirmedPayer)}`;
+        window.location.href = `${returnUrl}${sep}provider=${resolvedProvider}&amount=${toWholeTaka(amount)}&trxId=${encodeURIComponent(confirmTrx)}&payerNumber=${encodeURIComponent(confirmedPayer)}`;
       } else {
         // No origin known — show success state instead.
         setError("return_missing");
@@ -1133,8 +1528,8 @@ function InvoicePayment() {
             </button>
           </div>
         </motion.div>
-        <CustomerSupportFooter provider={resolvedProvider} />
-        <p className="bk-foot">Powered by ZiPAY</p>
+        <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+        <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
       </div>
     );
   }
@@ -1148,9 +1543,109 @@ function InvoicePayment() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="bk-spinner" style={{ borderColor: "#e5e7eb", borderTopColor: PROVIDER_THEME[resolvedProvider].color }} />
+          <div className="bk-spinner" style={{ borderColor: "#e5e7eb", borderTopColor: providerColor }} />
           <p style={{ color: "#9ca3af", fontSize: 14 }}>Loading payment page...</p>
         </motion.div>
+      </div>
+    );
+  }
+
+  // ── State cards: Pending Verification / Paid / Expired / Cancelled / Rejected ──
+  // These render instead of the payment form when the invoice status is final
+  // or requires manual verification. All messages are admin-configurable.
+  const terminalState = invoiceData ? (invoiceData.status === "paid" || invoiceData.status === "expired" || invoiceData.status === "cancelled" || invoiceData.status === "rejected") : false;
+
+  if (invoiceData && terminalState) {
+    const stateConfig: Record<InvoiceStatus, { title: string; text: string; icon: React.ReactNode; tone: string }> = {
+      paid: {
+        title: "Payment Successful",
+        text: settings.paidMessage || "Your payment has been verified and completed successfully. Thank you for your payment.",
+        icon: <CheckCircle2 size={28} />,
+        tone: "linear-gradient(135deg,#10b981,#059669)",
+      },
+      expired: {
+        title: "Invoice Expired",
+        text: settings.expiredMessage || "This invoice has expired. Please go back to the store and start a new payment.",
+        icon: <Clock size={28} />,
+        tone: "linear-gradient(135deg,#f59e0b,#d97706)",
+      },
+      cancelled: {
+        title: "Payment Cancelled",
+        text: settings.cancelledMessage || "This payment was cancelled. No money has been taken. Please go back to the store if you still want to pay.",
+        icon: <X size={28} />,
+        tone: "linear-gradient(135deg,#6b7280,#4b5563)",
+      },
+      rejected: {
+        title: "Payment Rejected",
+        text: settings.rejectedMessage || "This payment could not be verified and has been rejected. If you believe this is a mistake, please contact support.",
+        icon: <X size={28} />,
+        tone: "linear-gradient(135deg,#f43f5e,#dc2626)",
+      },
+      pending: {
+        title: "Pending Payment",
+        text: settings.pendingPaymentMessage || "Please complete your payment within the time shown. After sending money, enter your details below to confirm.",
+        icon: <Clock size={28} />,
+        tone: "linear-gradient(135deg,#f59e0b,#d97706)",
+      },
+      processing: {
+        title: "Pending Verification",
+        text: settings.pendingVerificationMessage || "Your payment has been submitted and is now pending verification.",
+        icon: <Clock size={28} />,
+        tone: "linear-gradient(135deg,#f59e0b,#d97706)",
+      },
+      failed: {
+        title: "Payment Failed",
+        text: settings.pendingVerificationMessage || "Your payment could not be completed. Please try again or contact support.",
+        icon: <X size={28} />,
+        tone: "linear-gradient(135deg,#f43f5e,#dc2626)",
+      },
+    };
+    const conf = stateConfig[invoiceData.status];
+
+    return (
+      <div className="bk-page">
+        <motion.div
+          className="bk-center"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          style={{ width: "100%", maxWidth: 420 }}
+        >
+          <div className="bk-success-card">
+            <div className="bk-success-icon" style={{ background: conf.tone }}>
+              {conf.icon}
+            </div>
+            <h2 className="bk-success-title">{conf.title}</h2>
+            <p className="bk-success-text">{conf.text}</p>
+            <div className="bk-invoice-card" style={{ marginTop: 18 }}>
+              {invoiceData.merchantName && (
+                <div className="bk-invoice-row">
+                  <span className="bk-invoice-label">Merchant:</span>
+                  <span className="bk-invoice-value">{invoiceData.merchantName}</span>
+                </div>
+              )}
+              <div className="bk-invoice-row">
+                <span className="bk-invoice-label">Amount:</span>
+                <span className="bk-invoice-amount">৳{toWholeTaka(invoiceData.amount).toLocaleString("en-BD")}</span>
+              </div>
+              {invoiceData.transactionId && (
+                <div className="bk-invoice-row">
+                  <span className="bk-invoice-label">TRX ID:</span>
+                  <span className="bk-invoice-value">{invoiceData.transactionId}</span>
+                </div>
+              )}
+            </div>
+            <button
+              className="bk-btn bk-btn--primary"
+              style={{ width: "100%" }}
+              onClick={() => window.location.href = "/pay"}
+            >
+              Back to Home <ArrowUpRight size={16} />
+            </button>
+          </div>
+        </motion.div>
+        <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+        <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
       </div>
     );
   }
@@ -1170,12 +1665,15 @@ function InvoicePayment() {
           style={{ width: "100%", maxWidth: 420 }}
         >
           <div className="bk-success-card">
-            <div className="bk-success-icon">
-              <CheckCircle2 size={28} />
+            <div className="bk-success-icon" style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}>
+              <Clock size={28} />
             </div>
-            <h2 className="bk-success-title">Payment Submitted</h2>
+            <h2 className="bk-success-title">Pending Verification</h2>
             <p className="bk-success-text">
-              Your payment of <strong>৳ {(pending.amount || 0).toLocaleString("en-BD")}</strong> via {providerLabel(pending.provider)} from <strong>{pending.payerNumber}</strong> (TRX ID <strong>{pending.trxId}</strong>) has been recorded. We will verify and confirm your order shortly.
+              {settings.pendingVerificationMessage || "Your payment has been submitted and is now pending verification. We will confirm and verify your payment shortly — this usually takes a few minutes."}
+            </p>
+            <p className="bk-success-text" style={{ marginTop: 8 }}>
+              <strong>৳ {toWholeTaka(pending.amount).toLocaleString("en-BD")}</strong> via {providerLabel(pending.provider)} — TRX ID <strong>{pending.trxId}</strong>
             </p>
             <button
               className="bk-btn bk-btn--primary"
@@ -1186,8 +1684,8 @@ function InvoicePayment() {
             </button>
           </div>
         </motion.div>
-        <CustomerSupportFooter provider={resolvedProvider} />
-        <p className="bk-foot">Powered by ZiPAY</p>
+        <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+        <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
       </div>
     );
   }
@@ -1205,10 +1703,10 @@ function InvoicePayment() {
           <div className="bk-top-lock">
             <Lock size={18} />
           </div>
-          <h1 className="bk-title">{providerLabel(resolvedProvider)} Payment</h1>
+          <h1 className="bk-title">{settings.invoiceHeading || `${providerLabel(resolvedProvider)} Payment`}</h1>
           <p className="bk-sub">
             <Lock size={11} />
-            Secure Payment · 256-bit SSL Encrypted
+            {settings.invoiceDescription || "Secure Payment · 256-bit SSL Encrypted"}
           </p>
         </div>
 
@@ -1223,11 +1721,11 @@ function InvoicePayment() {
             <div className="bk-invoice-row">
               <span className="bk-invoice-label">Merchant Account:</span>
               <span className="bk-invoice-value" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                {invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] || "—"}
-                {invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] ? (
+                {providerAccount || "—"}
+                {providerAccount ? (
                   <button
                     type="button"
-                    onClick={() => copyMerchantNumber(invoiceData?.merchantAccount || merchantNumbers[resolvedProvider] || "")}
+                    onClick={() => copyMerchantNumber(providerAccount)}
                     style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: copiedMerchant ? "#22c55e" : "#9ca3af" }}
                     title={copiedMerchant ? "Copied!" : "Copy number"}
                   >
@@ -1244,15 +1742,44 @@ function InvoicePayment() {
             )}
             <div className="bk-invoice-row">
               <span className="bk-invoice-label">Amount:</span>
-              <span className="bk-invoice-amount">৳{amount ? Number(amount).toLocaleString("en-BD") : "0"}</span>
+              <span className="bk-invoice-amount">৳{toWholeTaka(amount).toLocaleString("en-BD")}</span>
             </div>
           </div>
+
+          {/* Provider config — QR + account + instructions from DB */}
+          {resolvedProviderConfig.qrImageUrl && (
+            <div className="bk-invoice-card" style={{ textAlign: "center" }}>
+              <div className="bk-provider-qr">
+                <img src={resolvedProviderConfig.qrImageUrl} alt={`${providerLabel(resolvedProvider)} QR`} />
+              </div>
+              {resolvedProviderConfig.accountName && (
+                <p className="bk-provider-acct" style={{ marginTop: 8 }}>{resolvedProviderConfig.accountName}</p>
+              )}
+              <p className="bk-provider-acct" style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
+                Scan to pay with {providerLabel(resolvedProvider)} — or send to{" "}
+                <strong style={{ color: "var(--text)" }}>{providerAccount || "the merchant number"}</strong>
+              </p>
+            </div>
+          )}
+
+          {resolvedProviderConfig.warning && (
+            <div className="bk-provider-note" style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.35)", color: "#92400e" }}>
+              <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{resolvedProviderConfig.warning}</span>
+            </div>
+          )}
+          {resolvedProviderConfig.notice && (
+            <div className="bk-provider-note" style={{ background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.3)", color: "#1e40af" }}>
+              <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{resolvedProviderConfig.notice}</span>
+            </div>
+          )}
 
           {/* Provider Color Section — 2-step flow */}
           <motion.div
             key={resolvedProvider + formStep}
             className="bk-pay-box"
-            style={{ background: PROVIDER_THEME[resolvedProvider].color }}
+            style={{ background: providerColor }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -1305,6 +1832,14 @@ function InvoicePayment() {
               }
             </p>
 
+            {formStep === "phone" && resolvedProviderConfig.steps && resolvedProviderConfig.steps.length > 0 && (
+              <ol className="bk-provider-steps">
+                {resolvedProviderConfig.steps.map((step, si) => (
+                  <li key={si}>{step}</li>
+                ))}
+              </ol>
+            )}
+
             <div className="bk-btn-row">
               {formStep === "trx" && (
                 <button
@@ -1338,7 +1873,7 @@ function InvoicePayment() {
                 <button
                   type="button"
                   className="bk-btn bk-btn--primary"
-                  style={{ background: "#fff", color: PROVIDER_THEME[resolvedProvider].color }}
+                  style={{ background: "#fff", color: providerColor }}
                   onClick={() => {
                     if (!payerNumber.trim()) return;
                     setFormStep("trx");
@@ -1350,13 +1885,13 @@ function InvoicePayment() {
                 <button
                   type="button"
                   className="bk-btn bk-btn--primary"
-                  style={{ background: "#fff", color: PROVIDER_THEME[resolvedProvider].color, opacity: termsAccepted ? 1 : 0.5 }}
+                  style={{ background: "#fff", color: providerColor, opacity: termsAccepted ? 1 : 0.5 }}
                   disabled={submitting || timeLeft === 0 || !trxId.trim() || !termsAccepted}
                   onClick={(e) => submit(e)}
                 >
                   {submitting ? (
                     <>
-                      <div className="bk-spinner" style={{ width: 16, height: 16, borderWidth: 2, borderTopColor: PROVIDER_THEME[resolvedProvider].color, animationDuration: "0.6s" }} />
+                      <div className="bk-spinner" style={{ width: 16, height: 16, borderWidth: 2, borderTopColor: providerColor, animationDuration: "0.6s" }} />
                       Processing...
                     </>
                   ) : (
@@ -1406,20 +1941,15 @@ function InvoicePayment() {
         </motion.p>
 
         <div className="bk-how-steps">
-          {[
-            { n: "1", t: `Open your ${providerLabel(resolvedProvider)} App` },
-            { n: "2", t: "Choose Send Money" },
-            { n: "3", t: "Enter merchant account number" },
-            { n: "4", t: "Confirm & complete the payment" },
-          ].map((s) => (
+          {resolvedProviderConfig.steps?.map((s, idx) => (
             <motion.div
-              key={s.n}
+              key={idx}
               className="bk-how-step"
               variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <span className="bk-how-num">{s.n}</span>
-              <span className="bk-how-text">{s.t}</span>
+              <span className="bk-how-num">{idx + 1}</span>
+              <span className="bk-how-text">{s}</span>
             </motion.div>
           ))}
         </div>
@@ -1439,8 +1969,8 @@ function InvoicePayment() {
         </motion.div>
       </motion.div>
 
-      <CustomerSupportFooter provider={resolvedProvider} />
-      <p className="bk-foot">Powered by ZiPAY</p>
+      <CustomerSupportFooter supportNumber={settings.supportPhone || providerSupportNumber} supportText={settings.supportMessage} />
+      <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
     </div>
   );
 }

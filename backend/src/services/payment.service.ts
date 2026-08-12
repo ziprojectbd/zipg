@@ -300,10 +300,14 @@ export async function processSmsPayment(data: {
     throw new AppError('Duplicate transaction already processed', 409, 'DUPLICATE_SMS');
   }
 
+  // Stored amounts are whole-taka integers; SMS amounts may be floats
+  // (e.g. 1000.00). Match on the rounded amount so they align.
+  const normalizedAmount = Math.round(data.amount);
+
   // Find matching pending payment by provider, amount, and phone
   const pendingPayment = await Transaction.findOne({
     provider: data.provider,
-    amount: data.amount,
+    amount: normalizedAmount,
     status: 'pending',
     expiresAt: { $gt: new Date() },
   }).sort({ createdAt: 1 });
@@ -312,7 +316,7 @@ export async function processSmsPayment(data: {
     // Try wider match: provider + amount only
     const amountMatch = await Transaction.findOne({
       provider: data.provider,
-      amount: data.amount,
+      amount: normalizedAmount,
       status: 'pending',
       expiresAt: { $gt: new Date() },
     }).sort({ createdAt: 1 });

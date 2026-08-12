@@ -10,7 +10,15 @@ import * as securityService from '../services/security.service.js';
 import * as systemHealthService from '../services/systemHealth.service.js';
 import * as notificationService from '../services/notification.service.js';
 import * as paymentService from '../services/payment.service.js';
+import { cacheGet, cacheSet, cacheDel } from '../services/cache.service.js';
 import { Transaction, PaymentRequest, PaymentMethod } from '../models/index.js';
+
+const PUBLIC_PROVIDERS_CACHE_KEY = 'public_providers';
+
+/** Invalidate the public provider-config cache after any payment-method change. */
+function invalidatePublicProvidersCache(): void {
+  cacheDel(PUBLIC_PROVIDERS_CACHE_KEY);
+}
 
 /* ────────── Users ────────── */
 export async function createUserController(req: Request, res: Response, next: NextFunction) {
@@ -152,6 +160,31 @@ export async function updateSystemSettingsController(req: Request, res: Response
 }
 
 /* ────────── Payment Methods ────────── */
+
+// Sanitized public projection used on the invoice page — never exposes
+// internal metadata or secrets.
+const PUBLIC_METHOD_PROJECTION: Record<string, number> = {
+  code: 1,
+  name: 1,
+  displayName: 1,
+  icon: 1,
+  qrImageUrl: 1,
+  accountNumber: 1,
+  accountName: 1,
+  accountType: 1,
+  instructions: 1,
+  steps: 1,
+  warning: 1,
+  notice: 1,
+  color: 1,
+  minAmount: 1,
+  maxAmount: 1,
+  processingFee: 1,
+  processingFeeType: 1,
+  isActive: 1,
+  sortOrder: 1,
+};
+
 export async function listPaymentMethodsController(_req: Request, res: Response, next: NextFunction) {
   try {
     const methods = await PaymentMethod.find().sort({ sortOrder: 1 }).lean();
@@ -159,14 +192,151 @@ export async function listPaymentMethodsController(_req: Request, res: Response,
   } catch (error) { next(error); }
 }
 
+/** Public (no-auth) provider config for the invoice page — active providers only. */
+export async function getPublicPaymentMethodsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const cached = cacheGet<unknown[]>(PUBLIC_PROVIDERS_CACHE_KEY);
+    if (cached) {
+      res.json({ success: true, data: { methods: cached } });
+      return;
+    }
+    const methods = await PaymentMethod.find({ isActive: true })
+      .sort({ sortOrder: 1 })
+      .select(PUBLIC_METHOD_PROJECTION)
+      .lean();
+    cacheSet(PUBLIC_PROVIDERS_CACHE_KEY, methods, 60);
+    res.json({ success: true, data: { methods } });
+  } catch (error) { next(error); }
+}
+
+export async function createPaymentMethodController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const exists = await PaymentMethod.findOne({ code: body.code });
+    if (exists) {
+      res.status(409).json({
+        success: false,
+        error: `Payment method "${body.code}" already exists`,
+        code: 'DUPLICATE_CODE',
+      });
+      return;
+    }
+    const nextSortOrder = (await PaymentMethod.countDocuments()) + 1;
+    const method = await PaymentMethod.create({
+      ...body,
+      sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : nextSortOrder,
+      isActive: body.isActive !== false,
+    });
+
+    await activityLogService.createActivityLog({
+      userId: req.user?.sub as string,
+      action: 'payment_method_created',
+      message: `Payment method created: ${method.code} (${method.displayName})`,
+      entityType: 'PaymentMethod',
+      entityId: method.code,
+      severity: 'info',
+      metadata: { code: method.code, displayName: method.displayName },
+    });
+    invalidatePublicProvidersCache();
+
+    res.status(201).json({ success: true, data: method });
+  } catch (error) { next(error); }
+}
+
 export async function updatePaymentMethodController(req: Request, res: Response, next: NextFunction) {
   try {
+    const code = String(req.params.code);
     const method = await PaymentMethod.findOneAndUpdate(
-      { code: String(req.params.code) },
+      { code },
       { $set: req.body },
-      { new: true, upsert: true }
+      { new: true }
     );
+    if (!method) {
+      res.status(404).json({ success: false, error: 'Payment method not found', code: 'NOT_FOUND' });
+      return;
+    }
+
+    await activityLogService.createActivityLog({
+      userId: req.user?.sub as string,
+      action: 'payment_method_updated',
+      message: `Payment method updated: ${code}`,
+      entityType: 'PaymentMethod',
+      entityId: code,
+      severity: 'info',
+      metadata: { code, changed: req.body },
+    });
+    invalidatePublicProvidersCache();
+
     res.json({ success: true, data: method });
+  } catch (error) { next(error); }
+}
+
+export async function deletePaymentMethodController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const code = String(req.params.code);
+    const method = await PaymentMethod.findOne({ code }).lean();
+    if (!method) {
+      res.status(404).json({ success: false, error: 'Payment method not found', code: 'NOT_FOUND' });
+      return;
+    }
+
+    // Refuse to hard-delete a provider still referenced by open transactions.
+    const activeRefs = await Transaction.countDocuments({
+      provider: code,
+      status: { $nin: ['paid', 'failed', 'expired', 'cancelled', 'rejected'] },
+    });
+    if (activeRefs > 0) {
+      res.status(409).json({
+        success: false,
+        error: `Cannot delete "${code}": ${activeRefs} active transaction(s) reference it. Disable it instead.`,
+        code: 'PROVIDER_IN_USE',
+      });
+      return;
+    }
+
+    await PaymentMethod.deleteOne({ code });
+
+    await activityLogService.createActivityLog({
+      userId: req.user?.sub as string,
+      action: 'payment_method_deleted',
+      message: `Payment method deleted: ${code}`,
+      entityType: 'PaymentMethod',
+      entityId: code,
+      severity: 'warning',
+      metadata: { code },
+    });
+    invalidatePublicProvidersCache();
+
+    res.json({ success: true, data: { deleted: code } });
+  } catch (error) { next(error); }
+}
+
+export async function reorderPaymentMethodsController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const codes = (req.body.codes as string[]) || [];
+    const operations = codes.map((code, index) => ({
+      updateOne: {
+        filter: { code },
+        update: { $set: { sortOrder: index + 1 } },
+      },
+    }));
+    if (operations.length > 0) {
+      await PaymentMethod.bulkWrite(operations);
+    }
+
+    await activityLogService.createActivityLog({
+      userId: req.user?.sub as string,
+      action: 'payment_method_reordered',
+      message: 'Payment method order updated',
+      entityType: 'PaymentMethod',
+      entityId: 'list',
+      severity: 'info',
+      metadata: { order: codes },
+    });
+    invalidatePublicProvidersCache();
+
+    const methods = await PaymentMethod.find().sort({ sortOrder: 1 }).lean();
+    res.json({ success: true, data: { methods } });
   } catch (error) { next(error); }
 }
 

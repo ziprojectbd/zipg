@@ -13,11 +13,28 @@ export interface IPaySettings {
     bkash: string;
     nagad: string;
     rocket: string;
+    upay?: string;
   };
   showBranding: boolean;
   primaryColor: string;
   logoUrl?: string;
   faviconUrl?: string;
+  /* ── Branding / invoice defaults (admin-configurable) ── */
+  merchantName?: string;
+  merchantAccount?: string;
+  invoiceHeading?: string;
+  invoiceDescription?: string;
+  footerText?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+  /* ── Invoice state messages ── */
+  pendingPaymentMessage?: string;
+  pendingVerificationMessage?: string;
+  paidMessage?: string;
+  expiredMessage?: string;
+  cancelledMessage?: string;
+  rejectedMessage?: string;
+  supportMessage?: string;
 }
 
 export interface ISystemSettings {

@@ -145,7 +145,15 @@ export const userApi = {
 
 export const paymentMethodApi = {
   list: () => api.get('/api/admin/payment-methods'),
+  create: (data: Record<string, unknown>) => api.post('/api/admin/payment-methods', data),
   update: (code: string, data: Record<string, unknown>) => api.put(`/api/admin/payment-methods/${code}`, data),
+  remove: (code: string) => api.delete(`/api/admin/payment-methods/${code}`),
+  reorder: (codes: string[]) => api.post('/api/admin/payment-methods/reorder', { codes }),
+};
+
+/** Public (no auth): active providers + their config for the invoice page. */
+export const publicProviderApi = {
+  list: () => api.get('/api/public/providers'),
 };
 
 export const activityLogApi = {

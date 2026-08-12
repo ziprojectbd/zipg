@@ -67,12 +67,13 @@ export function invoiceExpiryFromNow(): Date {
  * and every writer must go through `assertValidTransition`.
  * ────────────────────────────────────────────────────────────────────────── */
 const ALLOWED_TRANSITIONS: Record<TransactionStatus, readonly TransactionStatus[]> = {
-  pending: ['processing', 'paid', 'expired', 'cancelled', 'failed'],
-  processing: ['paid', 'failed', 'expired', 'cancelled'],
+  pending: ['processing', 'paid', 'expired', 'cancelled', 'failed', 'rejected'],
+  processing: ['paid', 'failed', 'expired', 'cancelled', 'rejected'],
   paid: [],
   failed: [],
   expired: [],
   cancelled: [],
+  rejected: [],
 };
 
 export function assertValidTransition(

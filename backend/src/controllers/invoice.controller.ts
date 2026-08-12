@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as invoiceService from '../services/invoice.service.js';
 import { generateRequestId } from '../utils/index.js';
-import { PaymentRequest } from '../models/index.js';
+import { PaymentRequest, PaymentMethod } from '../models/index.js';
 import { createActivityLog } from '../services/activityLog.service.js';
 import { appConfig } from '../config/app.js';
 
@@ -56,7 +56,7 @@ export async function invoiceMintController(req: Request, res: Response, next: N
       orderId,
     } = req.body;
 
-    if (!amount || typeof amount !== 'number' || amount <= 0 || amount > appConfig.payment.maxAmount) {
+    if (!amount || typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > appConfig.payment.maxAmount) {
       res.status(400).json({
         success: false,
         error: 'Invalid amount',
@@ -65,7 +65,13 @@ export async function invoiceMintController(req: Request, res: Response, next: N
       return;
     }
 
-    if (!provider || !['bkash', 'nagad', 'rocket'].includes(provider)) {
+    // Normalize to whole taka (round-to-nearest). The invoice/payment session
+    // amount must be the same integer the main site charged — never a fraction.
+    const amountInt = Math.round(amount);
+
+    // Provider list is DB-driven — only active, configured providers mint invoices.
+    const activeMethod = provider ? await PaymentMethod.findOne({ code: provider, isActive: true }).lean() : null;
+    if (!provider || !activeMethod) {
       res.status(400).json({
         success: false,
         error: 'Unsupported payment provider',
@@ -83,7 +89,7 @@ export async function invoiceMintController(req: Request, res: Response, next: N
       secureTokenHash: invoice.secureTokenHash,
       invoiceCreatedAt: invoice.invoiceCreatedAt,
       invoiceExpiresAt: invoice.invoiceExpiresAt,
-      amount,
+      amount: amountInt,
       currency: currency || 'BDT',
       provider,
       merchantName: typeof merchantName === 'string' ? merchantName.slice(0, 200) : '',
@@ -103,7 +109,7 @@ export async function invoiceMintController(req: Request, res: Response, next: N
       userAgent: req.get('user-agent'),
       entityType: 'PaymentRequest',
       entityId: invoice.publicInvoiceId,
-      metadata: { provider, amount },
+      metadata: { provider, amount: amountInt },
     });
 
     res.status(201).json({

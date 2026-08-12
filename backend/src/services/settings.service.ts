@@ -1,6 +1,9 @@
 import { Settings } from '../models/index.js';
 import type { IPaySettings, ISystemSettings } from '../models/Settings.js';
 import { createActivityLog } from './activityLog.service.js';
+import { cacheGet, cacheSet, cacheDel } from './cache.service.js';
+
+export const PAY_SETTINGS_CACHE_KEY = 'pay_settings_public';
 
 const DEFAULT_PAY_SETTINGS: IPaySettings = {
   title: 'ZI PREMIUM SERVICES',
@@ -17,6 +20,21 @@ const DEFAULT_PAY_SETTINGS: IPaySettings = {
   },
   showBranding: true,
   primaryColor: '#8b5cf6',
+  merchantName: 'ZI Premium Services',
+  merchantAccount: '01614602084',
+  invoiceHeading: 'Complete Your Payment',
+  invoiceDescription: 'Pay securely using your preferred mobile wallet. Your payment will be verified automatically.',
+  footerText: 'Powered by ZiPAY',
+  supportEmail: 'support@zipremiumservices.com',
+  supportPhone: '01614602084',
+  pendingPaymentMessage: 'Please complete your payment using the instructions below. Your invoice will expire soon.',
+  pendingVerificationMessage:
+    'Your payment has been received and is being verified. We will confirm your order shortly. Please do not close this page.',
+  paidMessage: 'Your payment has been verified successfully. Thank you for your purchase!',
+  expiredMessage: 'This invoice has expired. Please create a new payment request to continue.',
+  cancelledMessage: 'This payment request has been cancelled.',
+  rejectedMessage: 'Your payment could not be verified. Please contact support for assistance.',
+  supportMessage: 'Need help with your payment? Contact our support team.',
 };
 
 const DEFAULT_SYSTEM_SETTINGS: ISystemSettings = {
@@ -34,11 +52,13 @@ const DEFAULT_SYSTEM_SETTINGS: ISystemSettings = {
 };
 
 export async function getPaySettings(): Promise<IPaySettings> {
+  const cached = cacheGet<IPaySettings>(PAY_SETTINGS_CACHE_KEY);
+  if (cached) return cached;
+
   const doc = await Settings.findOne({ key: 'pay_settings', group: 'pay' });
-  if (!doc) {
-    return DEFAULT_PAY_SETTINGS;
-  }
-  return doc.value as IPaySettings;
+  const result = (doc?.value as IPaySettings) || DEFAULT_PAY_SETTINGS;
+  cacheSet(PAY_SETTINGS_CACHE_KEY, result, 60);
+  return result;
 }
 
 export async function updatePaySettings(
@@ -63,15 +83,36 @@ export async function updatePaySettings(
     { upsert: true, new: true }
   );
 
+  // Invalidate the public cache so the invoice page sees the change immediately.
+  cacheDel(PAY_SETTINGS_CACHE_KEY);
+
   await createActivityLog({
     userId,
     action: 'settings_updated',
     message: 'Payment gateway settings updated',
     entityType: 'Settings',
     entityId: 'pay_settings',
+    metadata: { changed: sanitizeSettingsChanges(data) },
   });
 
   return updated;
+}
+
+/** Log only non-sensitive changed fields (never passwords, tokens, secrets). */
+function sanitizeSettingsChanges(data: Record<string, unknown>): Record<string, unknown> {
+  const blocked = new Set([
+    'smtp', 'mailPassword', 'smtpPassword', 'apiSecret', 'webhookSecret',
+    'secret', 'password', 'token',
+  ]);
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    const lower = key.toLowerCase();
+    if (blocked.has(lower) || lower.includes('secret') || lower.includes('password') || lower.includes('token')) {
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export async function getSystemSettings(): Promise<ISystemSettings> {

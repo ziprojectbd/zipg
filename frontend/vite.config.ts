@@ -12,6 +12,19 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: 5173,
       strictPort: true,
+      // Dev proxy — frontend calls /api + /socket.io on its own origin,
+      // forwarded to the local backend (no backend domain needed).
+      proxy: {
+        "/api": {
+          target: "http://localhost:3001",
+          changeOrigin: true,
+        },
+        "/socket.io": {
+          target: "http://localhost:3001",
+          changeOrigin: true,
+          ws: true,
+        },
+      },
     },
     preview: {
       host: "0.0.0.0",

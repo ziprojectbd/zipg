@@ -1,24 +1,27 @@
 # Coolify Deployment Guide — zi-pay
 
-Deploy **zi-pay** to production using Coolify with separate frontend and backend domains.
+Deploy **zi-pay** to production using Coolify. The frontend proxies `/api` and
+`/socket.io` to the backend itself — **no backend domain is required**.
 
 ## Architecture
 
 ```
                       ┌─────────────────────────────┐
    app.domain.com ──► │  Coolify Proxy (Traefik)   │ ──► frontend (nginx:80)
-                      │    SSL: Let's Encrypt      │
-   api.domain.com ──► │                            │ ──► backend (Express:5001)
-                      └─────────────────────────────┘
-                                   │
-                              MongoDB (mongo:27017)
+                      │    SSL: Let's Encrypt      │       │
+                      │                            │       │ proxy /api, /socket.io
+                      │                            │       ▼
+                      │                            │    backend (Express:5001)
+                      └─────────────────────────────┘       │
+                                                             ▼
+                                       MongoDB (EXTERNAL — Coolify-managed / Atlas)
 ```
 
-| Service   | Container | Internal Port | External Domain               |
-|-----------|-----------|---------------|-------------------------------|
-| Frontend  | nginx     | 80            | `app.domain.com`              |
-| Backend   | Express   | 5001          | `api.domain.com`              |
-| Database  | MongoDB   | 27017         | (internal only)               |
+| Service   | Container  | Internal Port | External Domain          |
+|-----------|------------|---------------|--------------------------|
+| Frontend  | nginx      | 80            | `pay.domain.com`         |
+| Backend   | Express    | 5001          | (internal — no domain)   |
+| Database  | MongoDB    | 27017         | (external / managed)     |
 
 ## Prerequisites
 
@@ -48,16 +51,23 @@ Create these records pointing to your Coolify server's IP address:
 
 1. In Coolify, click **New Resource** → **Public Repository** → **GitHub App**.
 2. Connect your GitHub repository and select the branch (e.g. `main`).
-3. Choose **Docker Image** & **Dockerfile** build type.
+3. Choose **Docker Compose** build type pointing at `docker-compose.yaml` at the repo root
+   (this builds both frontend + backend in one stack), **or** use separate **Dockerfile**
+   resources (frontend = `frontend/Dockerfile`, backend = `backend/Dockerfile`, both with
+   build context = repo root).
 
 ### Frontend Build Configuration
+
+> ⚠️ When using the compose file the frontend **does NOT need a backend domain**.
+> `VITE_API_URL=/api` (same-origin, proxied by nginx). The defaults in the compose
+> file and `frontend/.env.production` already do this — only override if you know why.
 
 In the resource's **Build** section, set these **Build Arguments** (these are `VITE_*` variables baked into the frontend bundle):
 
 | Argument                 | Example Value                                       |
 |--------------------------|-----------------------------------------------------|
-| `VITE_API_URL`           | `https://api.domain.com`                            |
-| `VITE_SOCKET_URL`        | `https://api.daydomain.com`                         |
+| `VITE_API_URL`           | `/api` (same-origin — no backend domain needed)    |
+| `VITE_SOCKET_URL`        | *(leave empty)* — socket uses the same origin too   |
 | `VITE_MAIN_SITE_URL`     | `https://domain.com`                                |
 | `VITE_GOOGLE_CLIENT_ID`  | `your-google-oauth-client-id.apps.googleusercontent.com` |
 
@@ -70,29 +80,34 @@ Ports Exposes         | `80`
 #### Domain Configuration
 
 1. In the resource, go to **Domains**.
-2. Add `https://app.domain.com` (and optionally `https://www.domain.com`).
+2. Add `https://pay.domain.com` (and optionally `https://www.domain.com`).
 3. Enable **HTTPS / Let's Encrypt** (Coolify automatically gets SSL certificates).
 
-> Optional: The same frontend container can serve multiple domains (app.domain.com, panel.domain.com) by adding them to Domains.
+> The nginx container proxies `/api/*` and `/socket.io/*` to the backend service
+> over the internal Docker network — same-origin, so **no CORS and no API domain**.
 
 ## Coolify Deployment — Backend
 
-Use "New Resource" → "Public Repository" → "GitHub App", or create your own from a Docker Compose based on this repo's `docker-compose.yml` — provided as a reference.
+Use "New Resource" → "Public Repository" → "GitHub App", or create your own from a Docker Compose based on this repo's `docker-compose.yaml` — provided as the default.
 
-If you want **separate deployments** (each with its own build process and domain):
+> 💡 The backend does **not** need its own domain — the frontend nginx proxies
+> `/api` and `/socket.io` to it internally. If you deploy backend as a separate
+> resource, **do not** add a public domain; keep it internal.
+
+If you want **separate deployments** (each with its own build process):
 
 1. Create a new resource for the **backend** by using the Dockerfile at `backend/Dockerfile` (build context = monorepo root).
 2. Set **Ports Exposes** → `5001`.
-3. Domain → `https://api.domain.com` with HTTPS enabled.
+3. **Do not** add a public domain. (If Coolify requires one, add a private/internal label only.)
 
 ### Backend Environment Variables
 
 | Variable        | Required | Example / Note                                                |
-|-----------------|----------
-| `MONGODB_URI`   | yes      | Atlas URI or Coolify-managed MongoDB connection string       |
+|-----------------|----------|---------------------------------------------------------------|
+| `MONGODB_URI`   | yes      | **Coolify-managed MongoDB URL or Atlas.** No bundled mongo container — do NOT use `mongo` hostname. |
 | `JWT_SECRET`    | yes      | `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
 | `WEBHOOK_SIGNING_SECRET` | yes | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `FRONTEND_URL`  | no       | `https://app.domain.com`                                     |
+| `FRONTEND_URL`  | no       | `https://pay.domain.com`                                     |
 | `CORS_ORIGINS`  | no       | comma-separated list of allowed origins                      |
 | `GOOGLE_CLIENT_ID` | yes    | Google OAuth Client ID                                      |
 | `JWT_ACCESS_EXPIRY` | no    | `15m`                                                      |
@@ -102,13 +117,18 @@ If you want **separate deployments** (each with its own build process and domain
 
 ### Healthchecks
 
-Coolify uses the Docker HEALTHCHECK from the Dockerfile. Verify `/health` responds:
+Coolify uses the Docker HEALTHCHECK from the Dockerfile. Verify `/health` responds
+(through the frontend proxy, since the backend has no public domain):
 
 ```
-https://api.domain.com/health
+https://pay.domain.com/api/health
 ```
 
 Returns `{"status":"ok","service":"zi-pay-api",...}`.
+
+> If the backend restarts repeatedly: check the container logs for the
+> `MONGODB_URI` error — the DB is external now, so the URL must be the
+> Coolify-managed / Atlas connection string, **not** `mongodb://mongo:27017`.
 
 ## Auto-Deployment from GitHub
 
@@ -118,9 +138,19 @@ Returns `{"status":"ok","service":"zi-pay-api",...}`.
 
 ## Troubleshooting
 
+### Backend keeps restarting (restart loop)
+
+The most common cause: `MONGODB_URI` is empty or points at the old internal
+`mongodb://mongo:27017/zipay` host. There is no `mongo` container anymore.
+Fix: set `MONGODB_URI` on the backend resource to the **Coolify-managed database
+URL** (the one Coolify prints for the database you created) or your Atlas URI.
+
 ### CORS errors in browser
 
-Add the exact origin shown in the console error to `CORS_ORIGINS` (it's an allow-list).
+With same-origin proxying (`VITE_API_URL=/api`) the browser never does
+cross-origin requests, so CORS errors should be gone. If you still see them,
+make sure `CORS_ORIGINS` includes the exact origin shown in the console error
+(it's an allow-list) and that the frontend nginx is proxying (not 404ing) `/api`.
 
 ### Socket.IO won't connect
 
@@ -128,21 +158,23 @@ Coolify (Traefik) must forward WebSockets. Ensure Websocket forwarding is enable
 
 ### Mixed content
 
-CSS / JS requests blocked over HTTP if the site itself is HTTPS. Ensure Coolify's proxy sends `X-Forwarded-Proto: https` (automatic) and the frontend fetches `https://api.domain.com` (not http).
+CSS / JS requests blocked over HTTP if the site itself is HTTPS. With same-origin
+proxying this can't happen — the frontend only talks to its own origin, which is HTTPS.
 
 ### Frontend links to `localhost` in production bundle
 
-The `VITE_*` variables are baked at build time. Do not set them to `http://localhost` in production builds.
+The `VITE_*` variables are baked at build time. Do not set them to `http://localhost`
+in production builds. Use `VITE_API_URL=/api` and let nginx proxy to the backend.
 
 ## Production Checklist
 
-- [ ] DNS records created for `app.domain.com` & `api.domain.com` (gray, DNS-only if using Coolify SSL)
-- [ ] Frontend build args = production domains
-- [ ] Backend `MONGODB_URI` points to Atlas/coolify-managed DB
+- [ ] DNS record created for `pay.domain.com` (gray, DNS-only if using Coolify SSL)
+- [ ] No `api.*` DNS record needed anymore — the frontend proxies `/api` to the backend
+- [ ] Backend `MONGODB_URI` = **Coolify-managed MongoDB URL** or Atlas (no bundled mongo)
 - [ ] Backend `JWT_SECRET` & `WEBHOOK_SIGNING_SECRET` set to generated values
 - [ ] `CORS_ORIGINS` includes the frontend domain(s)
-- [ ] Frontend domain & Backend domain both have HTTPS enabled
-- [ ] Both resources configured with **Ports Exposes** (frontend 80, backend 5001)
+- [ ] Frontend domain has HTTPS enabled; backend has no public domain
+- [ ] Resources configured with **Ports Exposes** (frontend 80, backend 5001)
 - [ ] **Auto deploy** enabled
-- [ ] `curl https://api.domain.com/health` returns `ok`
-- [ ] Login to `https://app.domain.com/admin/login` works
+- [ ] `curl https://pay.domain.com/api/health` returns `ok`
+- [ ] Login to `https://pay.domain.com/admin/login` works

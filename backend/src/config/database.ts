@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
-// Fallback points at the compose "mongo" service. In production MONGODB_URI is always provided via env.
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongo:27017/zipay';
+// MONGODB_URI is REQUIRED in production. There is no bundled "mongo" host
+// anymore — the database lives outside this container (Coolify-managed / Atlas).
+const MONGODB_URI = process.env.MONGODB_URI;
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 5000;
 
@@ -11,9 +12,15 @@ let retryCount = 0;
 export async function connectDatabase(): Promise<void> {
   if (isConnected) return;
 
+  if (!MONGODB_URI) {
+    throw new Error(
+      'MONGODB_URI is not set. Configure the Coolify-managed MongoDB connection string in the backend resource environment variables.'
+    );
+  }
+
   try {
     mongoose.set('strictQuery', true);
-    
+
     await mongoose.connect(MONGODB_URI, {
       maxPoolSize: 10,
       minPoolSize: 2,
@@ -43,13 +50,13 @@ export async function connectDatabase(): Promise<void> {
   } catch (error) {
     console.error(`[zi-pay] MongoDB connection failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
     isConnected = false;
-    
+
     if (retryCount < MAX_RETRIES) {
       retryCount++;
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
       return connectDatabase();
     }
-    
+
     throw new Error('Failed to connect to MongoDB after maximum retries');
   }
 }

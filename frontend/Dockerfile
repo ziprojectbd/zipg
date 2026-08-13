@@ -19,9 +19,10 @@ WORKDIR /app
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Build-time Vite variables — embedded in the JS bundle at build time
-ARG VITE_API_URL=http://localhost:5001
-ARG VITE_SOCKET_URL=http://localhost:5001
-ARG VITE_MAIN_SITE_URL=http://localhost:5173
+# VITE_API_URL is relative (/api) → same-origin requests proxied by nginx
+ARG VITE_API_URL=/api
+ARG VITE_SOCKET_URL=
+ARG VITE_MAIN_SITE_URL=https://zipremiumservices.com
 ARG VITE_GOOGLE_CLIENT_ID=""
 
 ENV VITE_API_URL=$VITE_API_URL

@@ -4,7 +4,12 @@
 # Architecture: Separate frontend + backend services
 #   Frontend: nginx serving Vite SPA → pay.zipremiumservices.com
 #   Backend:  Express.js API → pay.zipremiumservices.com/api
-#   Database: MongoDB (Coolify managed DB or bundled)
+#   Database: MongoDB — EXTERNAL (Coolify-managed DB / Atlas)
+#
+# ⚠️ MongoDB is NOT bundled here. Set MONGODB_URI in the Coolify resource's
+#    environment variables to the Coolify-managed MongoDB URL (or Atlas).
+#    This avoids the backend container restart loop caused by trying to
+#    resolve the internal "mongo" hostname.
 #
 # NOTE: Coolify is configured to build this exact file (docker-compose.yaml).
 # Do not rename it and do not create a competing docker-compose.yml —
@@ -21,8 +26,10 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-https://pay.zipremiumservices.com/api}
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-https://pay.zipremiumservices.com}
+        # Same-origin: the SPA calls /api and /socket.io on its own origin,
+        # nginx proxies those to the backend service over the internal network.
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-}
         VITE_MAIN_SITE_URL: ${VITE_MAIN_SITE_URL:-https://zipremiumservices.com}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
@@ -46,17 +53,17 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
     expose:
       - "5001"
     environment:
       - NODE_ENV=production
       - PORT=5001
-      - BASE_URL=${BASE_URL:-https://pay.zipremiumservices.com/api}
-      # Runtime env — set these in Coolify
-      - MONGODB_URI=${MONGODB_URI:-mongodb://zipay:${MONGO_INITDB_ROOT_PASSWORD:-zipay-secure-change-me}@mongo:27017/zipay?authSource=admin}
+      - BASE_URL=${BASE_URL:-/api}
+      # Runtime env — set these in Coolify.
+      # MONGODB_URI is REQUIRED: point it at the Coolify-managed MongoDB URL
+      # (e.g. mongodb://user:pass@mongo.internal:27017/zipay?authSource=admin)
+      # or MongoDB Atlas. There is NO bundled mongo container anymore.
+      - MONGODB_URI=${MONGODB_URI:?MONGODB_URI must be set in Coolify env}
       - JWT_SECRET=${JWT_SECRET:-}
       - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY:-15m}
       - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY:-7d}
@@ -79,32 +86,12 @@ services:
           cpus: "1.0"
 
   # ───────────────────── MongoDB ────────────────────────────────────────────
-  # Only needed if NOT using a Coolify managed database or MongoDB Atlas
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    volumes:
-      - mongo-data:/data/db
-      - mongo-config:/data/configdb
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-zipay}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-zipay-secure-change-me}
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      start_period: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "0.5"
+  # NOTE: MongoDB is intentionally NOT defined here.
+  # Use a Coolify-managed database or MongoDB Atlas and pass its connection
+  # string via the MONGODB_URI environment variable on the backend resource.
 
 # ────────────────────── Persisted Volumes ──────────────────────────────────
 volumes:
-  mongo-data:
-  mongo-config:
   uploads-data:
 
 # ────────────────────── Network ────────────────────────────────────────────

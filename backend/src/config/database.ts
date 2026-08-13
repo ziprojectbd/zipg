@@ -3,71 +3,92 @@ import mongoose from 'mongoose';
 // MONGODB_URI is REQUIRED in production. There is no bundled "mongo" host
 // anymore — the database lives outside this container (Coolify-managed / Atlas).
 const MONGODB_URI = process.env.MONGODB_URI;
-const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 5000;
 
 let isConnected = false;
-let retryCount = 0;
 
-export async function connectDatabase(): Promise<void> {
-  if (isConnected) return;
+// Resolves only when the first successful connection happens. Migrations and
+// cron jobs await this so they never run against a dead database.
+let connectedPromise: Promise<void> | null = null;
+let notifyConnected: (() => void) | null = null;
 
-  if (!MONGODB_URI) {
-    throw new Error(
-      'MONGODB_URI is not set. Configure the Coolify-managed MongoDB connection string in the backend resource environment variables.'
-    );
+function ensureConnectedPromise(): Promise<void> {
+  if (!connectedPromise) {
+    connectedPromise = new Promise<void>((resolve) => {
+      notifyConnected = resolve;
+    });
   }
+  return connectedPromise;
+}
 
-  try {
-    mongoose.set('strictQuery', true);
+/**
+ * Start (or continue) the background connection loop. This never rejects and
+ * never exits the process — on failure it simply retries every few seconds.
+ * The returned promise resolves once the first successful connect happens.
+ */
+export function connectDatabase(): Promise<void> {
+  const waitForConnection = ensureConnectedPromise();
+  kickConnectionLoop();
+  return waitForConnection;
+}
 
-    await mongoose.connect(MONGODB_URI, {
-      maxPoolSize: 10,
-      minPoolSize: 2,
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
-    });
+let loopRunning = false;
+function kickConnectionLoop(): void {
+  if (loopRunning) return;
+  loopRunning = true;
+  void attemptLoop();
+}
 
-    isConnected = true;
-    retryCount = 0;
-    console.log('[zi-pay] MongoDB connected successfully');
+async function attemptLoop(): Promise<void> {
+  while (!isConnected) {
+    if (!MONGODB_URI) {
+      console.error(
+        '[zi-pay] ⚠️ MONGODB_URI is not set. ' +
+          'Set the Coolify-managed MongoDB connection string in the backend ' +
+          'resource environment variables. Retrying in background...'
+      );
+    } else {
+      try {
+        mongoose.set('strictQuery', true);
 
-    mongoose.connection.on('error', (error) => {
-      console.error('[zi-pay] MongoDB connection error:', error);
-      isConnected = false;
-    });
+        await mongoose.connect(MONGODB_URI, {
+          maxPoolSize: 10,
+          minPoolSize: 2,
+          serverSelectionTimeoutMS: 10000,
+          socketTimeoutMS: 45000,
+          connectTimeoutMS: 10000,
+        });
 
-    mongoose.connection.on('disconnected', () => {
-      console.warn('[zi-pay] MongoDB disconnected');
-      isConnected = false;
-      if (retryCount < MAX_RETRIES) {
-        retryCount++;
-        setTimeout(connectDatabase, RETRY_DELAY_MS);
+        isConnected = true;
+        console.log('[zi-pay] MongoDB connected successfully');
+        notifyConnected?.();
+        break;
+      } catch (error) {
+        console.error('[zi-pay] MongoDB connection failed, retrying in background:', error);
       }
-    });
-
-  } catch (error) {
-    console.error(`[zi-pay] MongoDB connection failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
-    isConnected = false;
-
-    if (retryCount < MAX_RETRIES) {
-      retryCount++;
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      return connectDatabase();
     }
 
-    throw new Error('Failed to connect to MongoDB after maximum retries');
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
   }
 }
+
+mongoose.connection.on('error', (error) => {
+  console.error('[zi-pay] MongoDB connection error:', error);
+  isConnected = false;
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('[zi-pay] MongoDB disconnected — reconnecting in background');
+  isConnected = false;
+  kickConnectionLoop();
+});
 
 export function getConnectionStatus(): boolean {
   return isConnected;
 }
 
 export async function disconnectDatabase(): Promise<void> {
-  if (!isConnected) return;
-  await mongoose.disconnect();
   isConnected = false;
+  await mongoose.disconnect().catch(() => {});
   console.log('[zi-pay] MongoDB disconnected');
 }

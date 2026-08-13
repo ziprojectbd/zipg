@@ -8,7 +8,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 
-import { connectDatabase } from './config/database.js';
+import { connectDatabase, getConnectionStatus } from './config/database.js';
 import { appConfig, validateEnv } from './config/app.js';
 import { globalLimiter, errorHandler, notFoundHandler } from './middleware/index.js';
 import { initializeSocket } from './socket/index.js';
@@ -70,11 +70,13 @@ app.use('/uploads', express.static(path.resolve(__dirname, '../uploads'), { maxA
 
 /* ────────── Health ────────── */
 app.get('/health', (_req, res) => {
+  const dbConnected = getConnectionStatus();
   res.json({
-    status: 'ok',
+    status: dbConnected ? 'ok' : 'degraded',
     service: 'zi-pay-api',
     version: '1.0.0',
     environment: appConfig.nodeEnv,
+    database: dbConnected ? 'connected' : 'connecting',
     timestamp: new Date().toISOString(),
   });
 });
@@ -109,27 +111,29 @@ app.use(errorHandler);
 
 /* ────────── Start ────────── */
 async function start() {
-  try {
-    await connectDatabase();
-    // Backfill secure invoice fields on legacy pending invoices (idempotent).
-    await migrateLegacyInvoices();
-    initializeSocket(server);
-    startCronJobs();
+  // Listen FIRST so the Coolify healthcheck always succeeds. This is the
+  // key fix for the restart loop: the container must NOT exit when MongoDB
+  // is temporarily unreachable (e.g. DNS/sync delay after deploy).
+  const PORT = appConfig.port;
+  server.listen(PORT, () => {
+    console.log(`\n[zi-pay] 🚀 Server running on port ${PORT}`);
+    console.log(`[zi-pay] 🌍 Environment: ${appConfig.nodeEnv}`);
+    console.log(`[zi-pay] 📡 API v1: /api/v1`);
+    console.log(`[zi-pay] 📡 Socket.IO ready`);
+    console.log(`[zi-pay] 🔐 JWT issuer: ${appConfig.jwt.issuer}\n`);
+  });
 
-    const PORT = appConfig.port;
-    server.listen(PORT, () => {
-      console.log(`\n[zi-pay] 🚀 Server running on port ${PORT}`);
-      console.log(`[zi-pay] 🌍 Environment: ${appConfig.nodeEnv}`);
-      console.log(`[zi-pay] 📡 API v1: /api/v1`);
-      console.log(`[zi-pay] 📡 Socket.IO ready`);
-      console.log(`[zi-pay] ⏰ Cron jobs active`);
-      console.log(`[zi-pay] 🔐 JWT issuer: ${appConfig.jwt.issuer}\n`);
+  initializeSocket(server);
+
+  // DB connection runs in the background and retries forever (see database.ts)
+  // so the process never exits here. Migration + cron only run once the DB is
+  // actually connected — until then they simply wait.
+  connectDatabase()
+    .then(() => migrateLegacyInvoices())
+    .then(() => startCronJobs())
+    .catch((error) => {
+      console.error('[zi-pay] Background startup task failed (will retry):', error);
     });
-
-  } catch (error) {
-    console.error('[zi-pay] Failed to start server:', error);
-    process.exit(1);
-  }
 }
 
 /* ────────── Graceful Shutdown ────────── */
@@ -155,6 +159,17 @@ async function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+/* ────────── Crash Safety Net ────────── */
+// In Coolify (Docker) a process exit triggers a restart loop. Log unhandled
+// errors instead of crashing so transient DB/network issues can't take the
+// whole container down.
+process.on('unhandledRejection', (reason) => {
+  console.error('[zi-pay] Unhandled promise rejection (keeping server alive):', reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('[zi-pay] Uncaught exception (keeping server alive):', error);
+});
 
 start();
 

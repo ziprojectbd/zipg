@@ -99,10 +99,9 @@ export function validateEnv(): void {
   if (missing.length > 0) {
     console.error(`[zi-pay] ❌ Missing required environment variables: ${missing.join(', ')}`);
     console.error('[zi-pay] Set these in your Coolify environment variables or .env file.');
-    if (appConfig.isProduction) {
-      process.exit(1);
-    } else {
-      console.warn('[zi-pay] ⚠️  Continuing in development mode with defaults.');
-    }
+    // Do NOT process.exit(1) here — that makes the container crash-loop in
+    // Coolify (Exited / restart limit reached). Instead the server stays up,
+    // reports the problem via /health and retries the DB connection forever.
+    console.warn('[zi-pay] ⚠️  Server will stay up but dependent features may not work until these are set.');
   }
 }

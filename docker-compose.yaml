@@ -1,15 +1,18 @@
 ##############################################################################
 # zi-pay — Production Docker Compose for Coolify
 #
-# Architecture: Separate frontend + backend services
+# Architecture: Frontend + Backend + MongoDB (single stack)
 #   Frontend: nginx serving Vite SPA → pay.zipremiumservices.com
 #   Backend:  Express.js API → pay.zipremiumservices.com/api
-#   Database: MongoDB — EXTERNAL (Coolify-managed DB / Atlas)
+#   Database: MongoDB (mongo:7) bundled in this compose stack
 #
-# ⚠️ MongoDB is NOT bundled here. Set MONGODB_URI in the Coolify resource's
-#    environment variables to the Coolify-managed MongoDB URL (or Atlas).
-#    This avoids the backend container restart loop caused by trying to
-#    resolve the internal "mongo" hostname.
+# ⚠️ MongoDB is bundled here. The backend's retry loop
+#    (backend/src/config/database.ts) keeps the API alive while the DB
+#    boots or recovers — no Coolify restart loop.
+#
+# ⚠️ Security: set MONGO_ROOT_USERNAME / MONGO_ROOT_PASSWORD in Coolify to
+#    strong values. The backend connects via authSource=admin. Override
+#    MONGODB_URI entirely if you prefer an external DB (e.g. MongoDB Atlas).
 #
 # NOTE: Coolify is configured to build this exact file (docker-compose.yaml).
 # Do not rename it and do not create a competing docker-compose.yml —
@@ -53,17 +56,19 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
     expose:
       - "5001"
     environment:
       - NODE_ENV=production
       - PORT=5001
       - BASE_URL=${BASE_URL:-/api}
-      # Runtime env — set these in Coolify.
-      # MONGODB_URI is REQUIRED: point it at the Coolify-managed MongoDB URL
-      # (e.g. mongodb://user:pass@mongo.internal:27017/zipay?authSource=admin)
-      # or MongoDB Atlas. There is NO bundled mongo container anymore.
-      - MONGODB_URI=${MONGODB_URI:-}
+      # MONGODB_URI defaults to the bundled mongo service below, using the
+      # same MONGO_ROOT_* credentials. Override with an external DB if needed
+      # (e.g. mongodb+srv://user:pass@cluster.mongodb.net/zipay).
+      - MONGODB_URI=${MONGODB_URI:-mongodb://${MONGO_ROOT_USERNAME:-zipay}:${MONGO_ROOT_PASSWORD:-zipay_change_me}@mongo:27017/zipay?authSource=admin}
       - JWT_SECRET=${JWT_SECRET:-}
       - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY:-15m}
       - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY:-7d}
@@ -86,13 +91,33 @@ services:
           cpus: "1.0"
 
   # ───────────────────── MongoDB ────────────────────────────────────────────
-  # NOTE: MongoDB is intentionally NOT defined here.
-  # Use a Coolify-managed database or MongoDB Atlas and pass its connection
-  # string via the MONGODB_URI environment variable on the backend resource.
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    # Internal only — never expose the DB port to the public internet.
+    expose:
+      - "27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-zipay}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-zipay_change_me}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.75"
 
 # ────────────────────── Persisted Volumes ──────────────────────────────────
 volumes:
   uploads-data:
+  mongo-data:
 
 # ────────────────────── Network ────────────────────────────────────────────
 networks:

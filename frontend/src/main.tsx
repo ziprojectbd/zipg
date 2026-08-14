@@ -18,6 +18,71 @@ const RAW_API = import.meta.env.VITE_API_URL || "";
 const API_URL = RAW_API.replace(/\/api\/?$/, "");
 const MAIN_SITE_URL = import.meta.env.VITE_MAIN_SITE_URL || "";
 
+/**
+ * base64url encoding/decoding — used for the `cb` (callback URL) parameter.
+ * The same scheme is used elsewhere in this file (Flow C decodes cb with
+ * atob(cb.replace(/-/g,"+").replace(/_/g,"/"))). Encoding must mirror that.
+ */
+function encodeCb(value: string): string {
+  return btoa(unescape(encodeURIComponent(value)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function decodeCb(raw: string): string {
+  try {
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    return decodeURIComponent(escape(atob(padded)));
+  } catch {
+    return "";
+  }
+}
+
+/** Origins that a post-payment return/callback is allowed to target. */
+const ALLOWED_CALLBACK_ORIGINS: string[] = [
+  MAIN_SITE_URL,
+  "http://localhost:3000",
+  "https://zipremiumservices.com",
+  "https://www.zipremiumservices.com",
+].filter(Boolean);
+
+/**
+ * Resolve where the customer should return after confirming payment.
+ *
+ * Precedence:
+ *   1. A valid `cb` (base64url-encoded return URL) — validated against
+ *      ALLOWED_CALLBACK_ORIGINS. Never trusts raw user input.
+ *   2. VITE_MAIN_SITE_URL + /payment/process (explicit configuration).
+ *   3. Empty string — callers show the "return missing" state.
+ *
+ * `document.referrer` is deliberately NOT used: the invoice page is hosted by
+ * the gateway itself, so referrer-origin can be the gateway (or empty under
+ * strict-origin-when-cross-origin), which would strand the customer on the
+ * gateway homepage after payment.
+ */
+function resolveReturnUrl(cbRaw: string, fallbackBase: string = MAIN_SITE_URL): string {
+  if (cbRaw) {
+    const decoded = decodeCb(cbRaw);
+    try {
+      const u = new URL(decoded);
+      if (ALLOWED_CALLBACK_ORIGINS.includes(u.origin)) {
+        u.search = "";
+        u.hash = "";
+        return u.origin + u.pathname;
+      }
+    } catch { /* invalid URL — fall through */ }
+  }
+  if (fallbackBase) {
+    try {
+      const base = new URL(fallbackBase);
+      return base.origin + "/payment/process";
+    } catch { return ""; }
+  }
+  return "";
+}
+
 type Icon = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
 type AdminNavItem = { label: string; to: string; icon: Icon };
@@ -1462,19 +1527,11 @@ function InvoicePayment() {
   const providerAccountName = resolvedProviderConfig.accountName || invoiceData?.merchantName || settings.title || "ZiPAY Merchant";
   const providerAccountType = resolvedProviderConfig.accountType || "";
 
-  // Resolve return URL. Prefer explicit cb param, else derive from document.referrer.
-  let returnUrl = "";
-  try {
-    if (cb) {
-      returnUrl = decodeURIComponent(atob(cb.replace(/-/g, "+").replace(/_/g, "/")));
-    } else if (document.referrer) {
-      try {
-        const r = new URL(document.referrer);
-        r.search = ""; r.hash = "";
-        returnUrl = r.origin + "/payment/process";
-      } catch { returnUrl = ""; }
-    }
-  } catch { returnUrl = ""; }
+  // Resolve return URL. Explicit cb (validated) wins; otherwise the
+  // configured MAIN_SITE_URL fallback. document.referrer is NOT used —
+  // it can resolve to this gateway's own origin (or be empty), which would
+  // strand the customer on the gateway homepage after payment.
+  const returnUrl = resolveReturnUrl(cb);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1526,9 +1583,9 @@ function InvoicePayment() {
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%", background: "#dc2626" }}
-              onClick={() => window.location.href = "/pay"}
+              onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/pay"); window.location.href = u; }}
             >
-              Back to Home <ArrowUpRight size={16} />
+              Back to Store <ArrowUpRight size={16} />
             </button>
           </div>
         </motion.div>
@@ -1642,9 +1699,9 @@ function InvoicePayment() {
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%" }}
-              onClick={() => window.location.href = "/pay"}
+              onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/pay"); window.location.href = u; }}
             >
-              Back to Home <ArrowUpRight size={16} />
+              Back to Store <ArrowUpRight size={16} />
             </button>
           </div>
         </motion.div>
@@ -1682,9 +1739,9 @@ function InvoicePayment() {
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%" }}
-              onClick={() => { sessionStorage.removeItem("zi-pay-invoice-confirm"); window.location.href = "/pay"; }}
+              onClick={() => { sessionStorage.removeItem("zi-pay-invoice-confirm"); const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/pay"); window.location.href = u; }}
             >
-              Make Another Payment <ArrowUpRight size={16} />
+              Back to Store <ArrowUpRight size={16} />
             </button>
           </div>
         </motion.div>

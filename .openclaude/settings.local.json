@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(for d:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/ZIKRUL ISLAM/Downloads/zi-pay/**)",
+      "Bash(done)"
     ]
   }
 }

@@ -15,6 +15,7 @@ export type ActivityAction =
   | 'payment_expired'
   | 'invoice_created'
   | 'invoice_accessed'
+  | 'payment_session_created'
   | 'invoice_paid'
   | 'invoice_expired'
   | 'invoice_access_denied'

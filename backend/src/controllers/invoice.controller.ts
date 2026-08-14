@@ -32,16 +32,16 @@ export async function invoiceAccessController(req: Request, res: Response, next:
   }
 }
 
-/* ────────── One-time invoice minting (legacy Main Site flow) ──────────
+/* ────────── One-time invoice minting (secure session flow) ──────────
  * POST /api/invoices/mint
  * Body: { provider, amount, currency?, merchantName?, merchantAccount?,
  *         orderId? }
  *
- * The Main Site (zipremiumservices.com) redirects customers to
- * /payment/invoice?provider=&amount=&cb= WITHOUT a server-side record.
- * That flow trusts browser-supplied values for display — unacceptable.
- * So the invoice page mints a real, one-time, expiring PaymentRequest here,
- * then switches to the secure URL ?invoiceId=&token=.
+ * The gateway chooser (/payment/choose?session=<token>) resolves the
+ * authoritative amount from the backend PaymentSession, then mints a real,
+ * one-time, expiring PaymentRequest here and switches to the secure URL
+ * ?invoiceId=&token=. The amount is always server-derived — it is never
+ * read from the browser URL.
  *
  * Returns the raw secureToken exactly once.
  */

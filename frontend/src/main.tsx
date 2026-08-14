@@ -19,17 +19,10 @@ const API_URL = RAW_API.replace(/\/api\/?$/, "");
 const MAIN_SITE_URL = import.meta.env.VITE_MAIN_SITE_URL || "";
 
 /**
- * base64url encoding/decoding — used for the `cb` (callback URL) parameter.
+ * base64url decoding — used for the `cb` (callback URL) parameter.
  * The same scheme is used elsewhere in this file (Flow C decodes cb with
  * atob(cb.replace(/-/g,"+").replace(/_/g,"/"))). Encoding must mirror that.
  */
-function encodeCb(value: string): string {
-  return btoa(unescape(encodeURIComponent(value)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
 function decodeCb(raw: string): string {
   try {
     const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
@@ -984,7 +977,7 @@ function Landing() {
         <h1>Accept payments<br /><span className="gradient-text">any wallet</span></h1>
         <p>Integrate bKash, Nagad, and Rocket into your business with a single, secure API. Built for Bangladesh.</p>
         <div className="landing-intro-actions">
-          <a href="/pay" className="primary-btn" style={{ textDecoration: "none", padding: "14px 28px", fontSize: 14 }}>
+          <a href="/payment" className="primary-btn" style={{ textDecoration: "none", padding: "14px 28px", fontSize: 14 }}>
             Get started <ArrowUpRight size={16} />
           </a>
           <a href="/admin/login" className="outline-btn" style={{ textDecoration: "none", padding: "14px 28px", fontSize: 14 }}>
@@ -1022,7 +1015,7 @@ function Landing() {
         <div className="landing-cta-card">
           <h2>Start accepting payments today</h2>
           <p>No setup fees. Go live in minutes with our simple API integration.</p>
-          <a href="/pay" className="primary-btn" style={{ textDecoration: "none", padding: "14px 32px", fontSize: 14 }}>
+          <a href="/payment" className="primary-btn" style={{ textDecoration: "none", padding: "14px 32px", fontSize: 14 }}>
             Pay now <ArrowUpRight size={16} />
           </a>
           <p className="landing-cta-fine">No setup fees &middot; Go live in minutes</p>
@@ -1066,6 +1059,7 @@ const FALLBACK_PROVIDERS: ProviderConfig[] = [
   { code: "nagad", displayName: "Nagad", accountNumber: "", color: "#F58220" },
   { code: "rocket", displayName: "Rocket", accountNumber: "", color: "#7A1FA2" },
   { code: "upay", displayName: "Upay", accountNumber: "", color: "#F37021" },
+  { code: "tap", displayName: "Tap", accountNumber: "", color: "#FF4E00" },
 ];
 
 const FALLBACK_PROVIDER_THEME: Record<string, { color: string }> = {
@@ -1073,6 +1067,7 @@ const FALLBACK_PROVIDER_THEME: Record<string, { color: string }> = {
   nagad: { color: "#F58220" },
   rocket: { color: "#7A1FA2" },
   upay: { color: "#F37021" },
+  tap: { color: "#FF4E00" },
 };
 
 const FALLBACK_SUPPORT: Record<string, { number: string }> = {
@@ -1080,6 +1075,7 @@ const FALLBACK_SUPPORT: Record<string, { number: string }> = {
   nagad: { number: "16167" },
   rocket: { number: "16216" },
   upay: { number: "16267" },
+  tap: { number: "16018" },
 };
 
 function providerLabel(p: string) {
@@ -1094,15 +1090,6 @@ function findProvider(providers: ProviderConfig[], code: string): ProviderConfig
   const fallback = FALLBACK_PROVIDERS.find((m) => m.code === code) || FALLBACK_PROVIDERS[0];
   return { ...fallback, ...hit, steps: hit?.steps?.length ? hit.steps : fallback.steps };
 }
-
-type CheckoutPayment = {
-  id: string;
-  requestId?: string;
-  publicInvoiceId?: string;
-  secureToken?: string;
-  amount: number;
-  status: string;
-};
 
 type PaySettings = {
   title: string; subtitle: string; description: string;
@@ -1139,27 +1126,35 @@ const defaultPaySettings: PaySettings = {
 };
 
 function Checkout() {
+  const [params] = useSearchParams();
   const [settings, setSettings] = useState<PaySettings>(defaultPaySettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
-  const [provider, setProvider] = useState<"bkash" | "nagad" | "rocket" | "upay">("bkash");
-  const [form, setForm] = useState({ amount: "", trxId: "" });
-  const [payment, setPayment] = useState<CheckoutPayment | null>(null);
+  const [mintingProvider, setMintingProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  // The ONLY entry point is /payment/choose?session=<token>. The amount and
+  // orderId are resolved server-side from the PaymentSession — the browser URL
+  // never carries the price, and there is no amount-based fallback.
+  const sessionToken = params.get("session") || "";
+
+  // Session resolution lifecycle: 'resolving' | 'ready' | 'invalid'.
+  const [sessionState, setSessionState] = useState<"resolving" | "ready" | "invalid">(
+    sessionToken ? "resolving" : "invalid"
+  );
+  const [sessionAmount, setSessionAmount] = useState(0);
+  const [sessionOrderId, setSessionOrderId] = useState("");
 
   useEffect(() => {
     fetch(`${API_URL}/api/public/pay-settings`)
       .then((res) => res.json())
-      .then((data) => {
-        if (data?.title) setSettings(data);
-        if (data?.enabledProviders?.length > 0) setProvider(data.enabledProviders[0]);
-      })
+      .then((data) => { if (data?.title) setSettings(data); })
       .catch(() => setSettings(defaultPaySettings))
       .finally(() => setSettingsLoaded(true));
   }, []);
 
-  // Provider icons for the payment method buttons (DB-driven /api/public/providers).
+  // Provider methods for the payment method buttons (DB-driven /api/public/providers,
+  // configured through the admin Payment Methods page).
   useEffect(() => {
     fetch(`${API_URL}/api/public/providers`)
       .then((res) => res.json())
@@ -1170,79 +1165,101 @@ function Checkout() {
       .catch(() => {});
   }, []);
 
-  const update = (key: string, value: string) => setForm((c) => ({ ...c, [key]: value }));
+  // Resolve the server-authoritative amount + orderId from the session token.
+  // No amount is ever read from the URL. A missing/invalid/expired/consumed
+  // session lands on the invalid-session page and payment cannot proceed.
+  useEffect(() => {
+    if (!sessionToken) {
+      setSessionState("invalid");
+      return;
+    }
+    let cancelled = false;
+    setSessionState("resolving");
+    fetch(`${API_URL}/api/payment-sessions/${encodeURIComponent(sessionToken)}`)
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || "Payment session is invalid or expired");
+        return json;
+      })
+      .then((json) => {
+        if (cancelled) return;
+        const d = json?.data;
+        if (!d || !d.amount) throw new Error("Payment session is missing an amount");
+        setSessionAmount(toWholeTaka(d.amount));
+        setSessionOrderId(d.orderId || "");
+        setSessionState("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSessionState("invalid");
+      });
+    return () => { cancelled = true; };
+  }, [sessionToken]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // Fall back to pay-settings legacy enabledProviders if the DB has no methods.
+  const methodCodes = providers.length > 0
+    ? providers.map((p) => p.code)
+    : settings.enabledProviders;
+
+  // Selecting a payment method immediately mints a secure one-time invoice and
+  // redirects to it. The amount is always the server-resolved session amount —
+  // the customer cannot underpay or alter it.
+  const selectProvider = async (code: string) => {
+    if (mintingProvider || sessionState !== "ready") return;
+    const taka = sessionAmount;
+    if (!taka) { setError("No amount specified — please return to the store and try again."); return; }
+    setMintingProvider(code);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/api/payments/public/create`, {
+      const res = await fetch(`${API_URL}/api/invoices/mint`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, amount: Number(form.amount), provider }),
+        body: JSON.stringify({ provider: code, amount: taka, orderId: sessionOrderId || undefined }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not create payment");
-      setPayment(data.data || data);
+      if (!res.ok) throw new Error(data.error || "Could not create invoice");
+      const invoice = data?.data;
+      if (!invoice?.publicInvoiceId || !invoice?.secureToken) throw new Error("Invoice creation failed");
+      const invoiceQuery =
+        `/payment/invoice?invoiceId=${encodeURIComponent(invoice.publicInvoiceId)}` +
+        `&token=${encodeURIComponent(invoice.secureToken)}`;
+      window.location.href = invoiceQuery;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create payment");
-    } finally { setLoading(false); }
-  };
-
-  const merchantNumbers: Record<string, string> = {
-    bkash: settings.merchantBkashNumber,
-    nagad: settings.merchantNagadNumber,
-    rocket: settings.merchantRocketNumber,
-    upay: settings.merchantNagadNumber, // legacy checkout; Upay merchants use Nagad number fallback
+      setError(err instanceof Error ? err.message : "Could not create invoice");
+      setMintingProvider(null);
+    }
   };
 
   if (!settingsLoaded) {
     return <div className="checkout-page"><div className="checkout-shell"><div className="checkout-copy"><h1>Loading checkout...</h1></div></div></div>;
   }
 
-  if (payment) {
+  // Missing, invalid, expired, or already-consumed session: show an
+  // invalid-session page and never reveal the payment options or amount.
+  if (sessionState === "invalid") {
     return (
       <div className="checkout-page">
         <div className="checkout-shell">
-          {settings.showBranding && <Brand />}
-          <div className="checkout-success">
-            <div className="success-mark"><CheckCircle2 size={30} /></div>
-            <span className="checkout-kicker">Payment request created</span>
-            <h1>Complete your payment</h1>
-            <p>Send the exact amount using {providerLabel(provider)} to <strong>{merchantNumbers[provider]}</strong>.</p>
-            <div className="payment-reference"><span>Payment reference</span><strong>{payment.requestId || payment.id}</strong></div>
-            <div className="checkout-summary">
-              <div><span>Amount</span><strong>৳ {Number(payment.amount).toLocaleString("en-BD")}</strong></div>
-              <div><span>Provider</span><strong>{providerLabel(provider)}</strong></div>
-              <div><span>Status</span><Status>{payment.status}</Status></div>
-            </div>
-            {payment.publicInvoiceId && payment.secureToken ? (
-              <button
-                className="primary-btn full"
-                style={{ marginTop: 8 }}
-                onClick={() => (
-                  window.location.href =
-                    `/payment/invoice?invoiceId=${encodeURIComponent(payment.publicInvoiceId!)}` +
-                    `&token=${encodeURIComponent(payment.secureToken!)}`
-                )}
-              >
-                Continue to Payment <ArrowUpRight size={16} />
-              </button>
-            ) : payment.requestId ? (
-              <button
-                className="primary-btn full"
-                style={{ marginTop: 8 }}
-                onClick={() => (window.location.href = `/payment/invoice?requestId=${encodeURIComponent(payment.requestId!)}`)}
-              >
-                Continue to Payment <ArrowUpRight size={16} />
-              </button>
-            ) : null}
-            <button className="outline-btn full" onClick={() => setPayment(null)}>Create another payment</button>
+          <div className="checkout-copy">
+            <span className="checkout-kicker">ZI Pay</span>
+            <h1>Payment session unavailable</h1>
+            <p>This payment link is invalid or has expired. Please return to the store and start your payment again.</p>
           </div>
+          <div className="checkout-card">
+            <div className="checkout-note">
+              <span>Why did this happen?</span>
+              The payment session may have already been used, may have expired, or the link may be incorrect.
+            </div>
+            <div className="secure-line"><Shield size={13} />Secured by ZI Pay</div>
+          </div>
+          <p className="checkout-footer">Powered by ZI Pay Payment Gateway</p>
         </div>
       </div>
     );
+  }
+
+  if (sessionState === "resolving") {
+    return <div className="checkout-page"><div className="checkout-shell"><div className="checkout-copy"><h1>Loading payment session...</h1></div></div></div>;
   }
 
   return (
@@ -1258,32 +1275,29 @@ function Checkout() {
           <h1>{settings.title}</h1>
           <p>{settings.description}</p>
         </div>
-        <form className="checkout-card" onSubmit={submit}>
+        <div className="checkout-card">
+          <div className="checkout-amount-line">
+            <span>Amount to pay</span>
+            <strong>৳ {sessionAmount.toLocaleString("en-BD")}</strong>
+          </div>
           <div className="provider-selector">
             <span className="field-label">Choose payment method</span>
             <div className="provider-options">
-              {(settings.enabledProviders as ("bkash" | "nagad" | "rocket" | "upay")[]).map((item) => (
-                <button type="button" key={item} className={`provider-option ${provider === item ? "selected" : ""}`} onClick={() => setProvider(item)}>
-                  <span className={`provider-logo ${item}`}>{findProvider(providers, item).icon ? <img src={findProvider(providers, item).icon} alt={providerLabel(item)} /> : item[0]}</span><strong>{providerLabel(item)}</strong>
-                </button>
-              ))}
+              {methodCodes.map((item) => {
+                const cfg = findProvider(providers, item);
+                return (
+                  <button type="button" key={item} className={`provider-option ${mintingProvider === item ? "selected" : ""}`} onClick={() => selectProvider(item)} disabled={!!mintingProvider}>
+                    <span className={`provider-logo ${item}`}>{cfg.icon ? <img src={cfg.icon} alt={providerLabel(item)} /> : item[0]}</span><strong>{providerLabel(item)}</strong>
+                  </button>
+                );
+              })}
             </div>
           </div>
-          {settings.instructions?.[provider] && (
-            <div className="checkout-instruction" style={{ background: "#130e24", border: "1px solid var(--line)", borderRadius: 9, padding: "12px 14px", fontSize: 12, color: "#c3c9d8", lineHeight: 1.6 }}>
-              {settings.instructions[provider]}
-            </div>
-          )}
-          <div className="checkout-fields">
-            <label>Amount (BDT)<input required type="number" min="1" placeholder="500" value={form.amount} onChange={(e) => update("amount", e.target.value)} /></label>
-            <label>Transaction ID<small>from SMS</small><input required type="text" placeholder="A8D9P23" value={form.trxId} onChange={(e) => update("trxId", e.target.value)} /></label>
-          </div>
+
           {error && <div className="form-error">{error}</div>}
-          <button className="primary-btn checkout-submit" disabled={loading}>
-            {loading ? "Creating..." : `Pay with ${providerLabel(provider)}`} <ArrowUpRight size={16} />
-          </button>
+          {mintingProvider && <p className="checkout-hint">Creating your secure invoice...</p>}
           <div className="secure-line"><Shield size={13} />Secured by ZI Pay</div>
-        </form>
+        </div>
         <p className="checkout-footer">Powered by ZI Pay Payment Gateway</p>
       </div>
     </div>
@@ -1363,8 +1377,10 @@ function InvoicePayment() {
   };
 
   // Read query params — a secure invoice arrives as invoiceId + token;
-  // legacy invoices arrive as requestId; main-site direct invoices arrive
-  // as provider/amount/cb only.
+  // legacy invoices arrive as requestId. `cb` (if present) only helps
+  // resolveReturnUrl() pick the return destination; it never carries the
+  // amount/orderId. When cb is absent, resolveReturnUrl() falls back to
+  // the gateway's configured VITE_MAIN_SITE_URL (/payment/process).
   const requestId = params.get("requestId") || "";
   const invoiceId = params.get("invoiceId") || "";
   const token = params.get("token") || "";
@@ -1393,7 +1409,7 @@ function InvoicePayment() {
       .catch(() => {});
   }, []);
 
-  // ── Invoice data — secure token-gated flow / legacy requestId / cb-only mint ──
+  // ── Invoice data — secure token-gated flow / legacy requestId ──
   // Runs only after pay-settings finish loading (settingsLoaded = true).
   useEffect(() => {
     if (!settingsLoaded) return;
@@ -1444,57 +1460,6 @@ function InvoicePayment() {
       return;
     }
 
-    // ── Flow C: cb-only (main site direct invoice without server record) ──
-    if (cb) {
-      // Decode the provider/amount/orderId from the base64 cb payload, then
-      // mint a one-time server-authoritative invoice and redirect to the secure URL.
-      let decodedProvider = "bkash";
-      let decodedAmount = 0;
-      let decodedOrderId = "";
-      try {
-        const decoded = decodeURIComponent(atob(cb.replace(/-/g, "+").replace(/_/g, "/")));
-        const cbParams = new URLSearchParams(decoded);
-        decodedProvider = cbParams.get("provider") || params.get("provider") || "bkash";
-        decodedAmount = toWholeTaka(cbParams.get("amount")) || toWholeTaka(params.get("amount")) || 0;
-        decodedOrderId = cbParams.get("orderId") || "";
-      } catch {
-        decodedProvider = params.get("provider") || "bkash";
-        decodedAmount = toWholeTaka(params.get("amount")) || 0;
-      }
-      if (!decodedAmount) { setInvoiceError("Invalid payment amount"); setSettingsLoaded(true); return; }
-
-      // Use browser history.replaceState to switch to secure URL after minting,
-      // preventing the browser URL from exposing the raw cb/amount/provider.
-      fetch(`${API_URL}/api/invoices/mint`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: decodedProvider,
-          amount: decodedAmount,
-          orderId: decodedOrderId || undefined,
-        }),
-      })
-        .then(async (res) => {
-          if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Could not create invoice"); }
-          return res.json();
-        })
-        .then((json) => {
-          const data = json?.data;
-          if (!data?.publicInvoiceId || !data?.secureToken) throw new Error("Invoice creation failed");
-          // Redirect to secure URL — browser back-button won't expose cb params
-          const secureUrl =
-            `/payment/invoice?invoiceId=${encodeURIComponent(data.publicInvoiceId)}` +
-            `&token=${encodeURIComponent(data.secureToken)}`;
-          window.history.replaceState(null, "", secureUrl);
-          window.location.href = secureUrl;
-        })
-        .catch((e: unknown) => {
-          setInvoiceError(e instanceof Error ? e.message : "Could not create invoice");
-          setSettingsLoaded(true);
-        });
-      return;
-    }
-
     // ── No params at all ──
     setInvoiceError("No request ID provided");
     setSettingsLoaded(true);
@@ -1506,14 +1471,12 @@ function InvoicePayment() {
     return () => clearInterval(timer);
   }, []);
 
-  // All display values come from the backend when a requestId is present.
-  // Otherwise (merchant direct invoice with only provider/amount/cb) fall back to query params.
+  // All display values come from the backend invoice response.
   const resolvedProvider =
     (invoiceData?.provider as string) ||
-    (params.get("provider") as string) ||
     (providers.length > 0 ? providers[0].code : settings.enabledProviders?.[0]) ||
     "bkash";
-  const amount = toWholeTaka(invoiceData?.amount) || toWholeTaka(params.get("amount")) || 0;
+  const amount = toWholeTaka(invoiceData?.amount) || 0;
 
   // Provider config from the DB-driven list (falls back to built-in defaults).
   const resolvedProviderConfig = findProvider(providers, resolvedProvider);
@@ -1554,7 +1517,10 @@ function InvoicePayment() {
       // Pass both trxId and payerNumber via query since sessionStorage is origin-scoped.
       if (returnUrl) {
         const sep = returnUrl.includes("?") ? "&" : "?";
-        window.location.href = `${returnUrl}${sep}provider=${resolvedProvider}&amount=${toWholeTaka(amount)}&trxId=${encodeURIComponent(confirmTrx)}&payerNumber=${encodeURIComponent(confirmedPayer)}`;
+        // orderId (if present) is returned too so the main site can reuse the
+        // exact order number the invoice displayed.
+        const orderParam = invoiceData?.orderId ? `&orderId=${encodeURIComponent(invoiceData.orderId)}` : "";
+        window.location.href = `${returnUrl}${sep}provider=${resolvedProvider}&amount=${toWholeTaka(amount)}&trxId=${encodeURIComponent(confirmTrx)}&payerNumber=${encodeURIComponent(confirmedPayer)}${orderParam}`;
       } else {
         // No origin known — show success state instead.
         setError("return_missing");
@@ -1583,7 +1549,7 @@ function InvoicePayment() {
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%", background: "#dc2626" }}
-              onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/pay"); window.location.href = u; }}
+              onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/payment"); window.location.href = u; }}
             >
               Back to Store <ArrowUpRight size={16} />
             </button>
@@ -1699,7 +1665,7 @@ function InvoicePayment() {
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%" }}
-              onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/pay"); window.location.href = u; }}
+              onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/payment"); window.location.href = u; }}
             >
               Back to Store <ArrowUpRight size={16} />
             </button>
@@ -1739,7 +1705,7 @@ function InvoicePayment() {
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%" }}
-              onClick={() => { sessionStorage.removeItem("zi-pay-invoice-confirm"); const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/pay"); window.location.href = u; }}
+              onClick={() => { sessionStorage.removeItem("zi-pay-invoice-confirm"); const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/payment"); window.location.href = u; }}
             >
               Back to Store <ArrowUpRight size={16} />
             </button>
@@ -3200,7 +3166,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/pay" element={<Checkout />} />
+        <Route path="/payment" element={<Checkout />} />
+        <Route path="/payment/choose" element={<Checkout />} />
         <Route path="/payment/invoice" element={<InvoicePayment />} />
         <Route path="/track" element={<PaymentStatusPage />} />
         <Route path="/status/:requestId" element={<PaymentStatusPage />} />

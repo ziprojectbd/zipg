@@ -4,6 +4,7 @@ import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useNaviga
 import { ArrowUpRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Copy, Clock, CreditCard, ExternalLink, FileText, Globe, Info, KeyRound, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
+import { io, type Socket } from "socket.io-client";
 import "./styles.css";
 import "./invoice.css";
 
@@ -17,6 +18,38 @@ import "./invoice.css";
 const RAW_API = import.meta.env.VITE_API_URL || "";
 const API_URL = RAW_API.replace(/\/api\/?$/, "");
 const MAIN_SITE_URL = import.meta.env.VITE_MAIN_SITE_URL || "";
+
+/**
+ * Shared Socket.IO client (lazy singleton) for real-time public events.
+ *
+ * URL resolution:
+ *   - VITE_SOCKET_URL (dev: http://localhost:3001) when set.
+ *   - Otherwise API_URL when it is an absolute origin (dev fallback).
+ *   - Otherwise `undefined` → socket.io-client connects to the page's own
+ *     origin, where nginx proxies /socket.io to the backend (production).
+ *
+ * The socket is a real-time enhancement only: connect errors are swallowed
+ * so a failing Socket.IO connection never breaks the checkout, which stays
+ * fully functional on the settings from the initial API fetch.
+ */
+let paySocket: Socket | null = null;
+function getPaySocket(): Socket | null {
+  if (paySocket) return paySocket;
+  try {
+    const url = import.meta.env.VITE_SOCKET_URL || API_URL || undefined;
+    paySocket = io(url, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+    });
+    paySocket.on("connect_error", () => {
+      // Intentionally silent — Socket.IO is an enhancement, not a dependency.
+    });
+  } catch {
+    paySocket = null;
+  }
+  return paySocket;
+}
 
 /**
  * base64url decoding — used for the `cb` (callback URL) parameter.
@@ -108,11 +141,13 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
 }
 
 /* ────────── Brand ────────── */
-function Brand() {
+function Brand({ logoUrl, name, tagline }: { logoUrl?: string; name?: string; tagline?: string }) {
   return (
     <div className="brand">
-      <div className="brand-mark"><Zap size={16} fill="currentColor" /></div>
-      <div><strong>ZI PREMIUM SERVICES</strong><span>Payment Gateway</span></div>
+      <div className="brand-mark">
+        {logoUrl ? <img src={logoUrl} alt={name || "logo"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }} /> : <Zap size={16} fill="currentColor" />}
+      </div>
+      <div><strong>{name || "ZI PREMIUM SERVICES"}</strong><span>{tagline || "Payment Gateway"}</span></div>
     </div>
   );
 }
@@ -208,7 +243,6 @@ function ResourcePage({ title, icon: I, description, button, children }: { title
           <div className="empty-icon"><I size={22} /></div>
           <h3>No {String(title).toLowerCase()} yet</h3>
           <p>Connect your first resource to start managing it from the ZI Pay console.</p>
-          <button className="outline-btn">Get started <ArrowUpRight size={14} /></button>
         </div>
       )}
     </div>
@@ -446,6 +480,7 @@ function PaySettingsPage() {
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     fetch(`${API_URL}/api/admin/settings/pay`, { headers: { Authorization: `Bearer ${getToken()}` } })
@@ -458,14 +493,20 @@ function PaySettingsPage() {
   const update = (key: string, value: any) => setSettings((s) => ({ ...s, [key]: value }));
 
   const save = async () => {
-    setSaving(true);
+    setSaving(true); setNotice("");
     try {
-      await fetch(`${API_URL}/api/admin/settings/pay`, {
+      const res = await fetch(`${API_URL}/api/admin/settings/pay`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-    } catch {} finally { setSaving(false); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed to save (${res.status})`);
+      setSettings(data.data || settings);
+      setNotice("Settings saved.");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Failed to save settings");
+    } finally { setSaving(false); }
   };
 
   if (loading) return <div className="content"><p style={{ color: "var(--muted)" }}>Loading settings...</p></div>;
@@ -486,6 +527,7 @@ function PaySettingsPage() {
         <div><div className="resource-title"><div className="metric-icon purple"><Palette size={19} /></div><h2>Pay Settings</h2></div><p>Customize the public payment page.</p></div>
         <button className="primary-btn" onClick={save} disabled={saving}>{saving ? "Saving..." : "Save changes"}</button>
       </div>
+      {notice && <div className="form-error" style={{ marginBottom: 14 }}>{notice}</div>}
 
       <div className="card" style={{ padding: 24 }}>
         <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Branding</h3>
@@ -497,7 +539,8 @@ function PaySettingsPage() {
             <label style={labelStyle}>Logo URL <input type="text" placeholder="https://..." value={settings.logoUrl || ""} onChange={(e) => update("logoUrl", e.target.value)} style={inputStyle} /></label>
             <label style={labelStyle}>Favicon URL <input type="text" placeholder="https://..." value={settings.faviconUrl || ""} onChange={(e) => update("faviconUrl", e.target.value)} style={inputStyle} /></label>
           </div>
-          <label style={labelStyle}>Footer Text <input type="text" value={settings.footerText || ""} onChange={(e) => update("footerText", e.target.value)} style={inputStyle} /></label>
+          <label style={labelStyle}>Footer Text <input type="text" placeholder="Powered by..." value={settings.footerText || ""} onChange={(e) => update("footerText", e.target.value)} style={inputStyle} /></label>
+          <label style={labelStyle}>Secured By Text <input type="text" placeholder="Secured by ZI Pay" value={settings.securedByText || ""} onChange={(e) => update("securedByText", e.target.value)} style={inputStyle} /></label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>Support Email <input type="email" value={settings.supportEmail || ""} onChange={(e) => update("supportEmail", e.target.value)} style={inputStyle} /></label>
             <label style={labelStyle}>Support Phone <input type="text" value={settings.supportPhone || ""} onChange={(e) => update("supportPhone", e.target.value)} style={inputStyle} /></label>
@@ -533,33 +576,6 @@ function PaySettingsPage() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: 24, marginTop: 18 }}>
-        <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Checkout Instructions (legacy checkout page)</h3>
-        <div style={{ display: "grid", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <label style={labelStyle}>bKash Number <input type="text" value={settings.merchantBkashNumber || ""} onChange={(e) => update("merchantBkashNumber", e.target.value)} style={inputStyle} /></label>
-            <label style={labelStyle}>Nagad Number <input type="text" value={settings.merchantNagadNumber || ""} onChange={(e) => update("merchantNagadNumber", e.target.value)} style={inputStyle} /></label>
-            <label style={labelStyle}>Rocket Number <input type="text" value={settings.merchantRocketNumber || ""} onChange={(e) => update("merchantRocketNumber", e.target.value)} style={inputStyle} /></label>
-          </div>
-          {[
-            { key: "bkash", label: "bKash" },
-            { key: "nagad", label: "Nagad" },
-            { key: "rocket" },
-            { key: "upay", label: "Upay" },
-          ].filter((p) => settings.enabledProviders?.includes(p.key)).map((p) => (
-            <label key={p.key} style={labelStyle}>
-              {p.label} Instructions
-              <textarea
-                rows={3}
-                placeholder={`e.g. Send money to the ${p.key} number shown and enter the TRX ID.`}
-                value={settings.instructions?.[p.key] || ""}
-                onChange={(e) => update("instructions", { ...(settings.instructions || {}), [p.key]: e.target.value })}
-                style={inputStyle}
-              />
-            </label>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -585,7 +601,7 @@ function PaymentMethodsPage() {
   const [editing, setEditing] = useState<MethodForm | null>(null);
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState("");
-  const [step, setStep] = useState<"list" | "edit">("list");
+  const [step, setStep] = useState<"list" | "edit" | "qr">("list");
 
   const reload = () => {
     setLoading(true);
@@ -620,7 +636,15 @@ function PaymentMethodsPage() {
     setCreating(false); setStep("edit"); setNotice("");
   };
 
-  // ── Steps (How it works) editor: add / remove / reorder lines ──
+  // Quick "Bangla QR provider" create — only name, logo and merchant QR.
+  // A provider code is derived from the name; the merchant QR is the payment
+  // destination, so no account number / fee / step config is needed here.
+  const startQrCreate = () => {
+    setEditing({ ...EMPTY_METHOD, steps: "" });
+    setCreating(true); setStep("qr"); setNotice("");
+  };
+
+  // Step-line editor helpers for the full provider form.
   const currentSteps = (editing?.steps || "").split("\n").filter(Boolean);
   const updateStepLine = (idx: number, value: string) => {
     setEditing((s) => (s ? { ...s, steps: currentSteps.map((line, i) => (i === idx ? value : line)).join("\n") } : s));
@@ -642,6 +666,7 @@ function PaymentMethodsPage() {
     });
   };
 
+  /** Full provider editor (original system) — add or edit a provider. */
   const saveMethod = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
@@ -669,6 +694,41 @@ function PaymentMethodsPage() {
       setStep("list"); setEditing(null); reload();
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Failed to save payment method");
+    } finally { setSaving(false); }
+  };
+
+  /** Bangla QR provider — create only, using just name, logo and merchant QR. */
+  const saveQrMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    const name = editing.displayName.trim();
+    if (!name) { setNotice("Provider name is required."); return; }
+    // Derive a unique, URL-safe provider code slug from the name (e.g. "BanglaQR" -> "banglaqr").
+    // The invoice page and provider list are DB-driven, so any custom code works end-to-end.
+    const code = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || editing.code;
+    if (!code) { setNotice("Could not derive a provider code from that name."); return; }
+    setSaving(true); setNotice("");
+    try {
+      const payload: Record<string, unknown> = {
+        code,
+        name,
+        displayName: name,
+        icon: editing.icon,
+        qrImageUrl: editing.qrImageUrl,
+        // accountNumber isn't shown here — default to the code so the backend
+        // (required field) validates. The merchant QR carries the destination.
+        accountNumber: code,
+        steps: [],
+        isActive: true,
+      };
+      for (const key of Object.keys(payload)) {
+        if (payload[key] === "") payload[key] = undefined;
+      }
+      await apiCall("/api/admin/payment-methods", { method: "POST", body: JSON.stringify(payload) });
+      setNotice("Bangla QR provider created.");
+      setStep("list"); setEditing(null); reload();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Failed to save Bangla QR provider");
     } finally { setSaving(false); }
   };
 
@@ -796,11 +856,37 @@ function PaymentMethodsPage() {
     );
   }
 
+  if (step === "qr" && editing) {
+    return (
+      <div className="resource-page">
+        <div className="page-intro">
+          <div><div className="resource-title"><div className="metric-icon purple"><QrCode size={19} /></div><h2>Add Bangla QR Provider</h2></div><p>Just name, logo and the merchant QR image — everything else is kept minimal.</p></div>
+          <button className="outline-btn" onClick={() => { setStep("list"); setEditing(null); }}>Back</button>
+        </div>
+        {notice && <div className="form-error" style={{ marginBottom: 14 }}>{notice}</div>}
+        <div className="card" style={{ padding: 24 }}>
+          <form onSubmit={saveQrMethod} style={{ display: "grid", gap: 18 }}>
+            {field("displayName", "Provider Name", "bKash")}
+            {field("icon", "Provider Logo URL", "https://...")}
+            {field("qrImageUrl", "Merchant QR Image URL", "https://...")}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="primary-btn" type="submit" disabled={saving}>{saving ? "Saving..." : "Create Bangla QR provider"}</button>
+              <button className="outline-btn" type="button" onClick={() => { setStep("list"); setEditing(null); }}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="resource-page">
       <div className="page-intro">
         <div><div className="resource-title"><div className="metric-icon purple"><CircleDollarSign size={19} /></div><h2>Payment Methods</h2></div><p>Configure supported payment providers and their settings.</p></div>
-        <button className="primary-btn" onClick={startCreate}><Plus size={15} /> Add provider</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="primary-btn" onClick={startCreate}><Plus size={15} /> Add provider</button>
+          <button className="outline-btn" onClick={startQrCreate}><QrCode size={15} /> Bangla QR provider</button>
+        </div>
       </div>
       {notice && <div className="form-error" style={{ marginBottom: 14 }}>{notice}</div>}
       <div className="card" style={{ padding: "20px 20px 7px" }}>
@@ -977,9 +1063,6 @@ function Landing() {
         <h1>Accept payments<br /><span className="gradient-text">any wallet</span></h1>
         <p>Integrate bKash, Nagad, and Rocket into your business with a single, secure API. Built for Bangladesh.</p>
         <div className="landing-intro-actions">
-          <a href="/payment" className="primary-btn" style={{ textDecoration: "none", padding: "14px 28px", fontSize: 14 }}>
-            Get started <ArrowUpRight size={16} />
-          </a>
           <a href="/admin/login" className="outline-btn" style={{ textDecoration: "none", padding: "14px 28px", fontSize: 14 }}>
             Merchant login
           </a>
@@ -1093,9 +1176,6 @@ function findProvider(providers: ProviderConfig[], code: string): ProviderConfig
 
 type PaySettings = {
   title: string; subtitle: string; description: string;
-  enabledProviders: string[]; merchantBkashNumber: string;
-  merchantNagadNumber: string; merchantRocketNumber: string;
-  instructions: { bkash: string; nagad: string; rocket: string; upay?: string };
   showBranding: boolean; primaryColor: string;
   logoUrl?: string; faviconUrl?: string;
   merchantName?: string; merchantAccount?: string;
@@ -1104,18 +1184,16 @@ type PaySettings = {
   pendingPaymentMessage?: string; pendingVerificationMessage?: string;
   paidMessage?: string; expiredMessage?: string; cancelledMessage?: string;
   rejectedMessage?: string; supportMessage?: string;
+  securedByText?: string;
 };
 
 const defaultPaySettings: PaySettings = {
   title: "ZI PREMIUM SERVICES", subtitle: "Secure checkout",
   description: "Complete your payment through bKash, Nagad, or Rocket.",
-  enabledProviders: ["bkash", "nagad", "rocket"],
-  merchantBkashNumber: "01614602084", merchantNagadNumber: "01614602084", merchantRocketNumber: "01614602084",
-  instructions: { bkash: "Send money to the bKash number shown.", nagad: "Send money to the Nagad number shown.", rocket: "Send money to the Rocket number shown." },
   showBranding: true, primaryColor: "#8b5cf6",
   merchantName: "ZI Premium Services", merchantAccount: "01614602084",
   invoiceHeading: "Complete Your Payment", invoiceDescription: "Complete your payment and enter your transaction details below to confirm.",
-  footerText: "Powered by ZiPAY", supportEmail: "support@zipremiumservices.com", supportPhone: "01614602084",
+  footerText: "Powered by ZiPAY", securedByText: "Secured by ZI Pay", supportEmail: "support@zipremiumservices.com", supportPhone: "01614602084",
   pendingPaymentMessage: "Please complete your payment within the time shown. After sending money, enter your details below to confirm.",
   pendingVerificationMessage: "Your payment has been submitted and is now pending verification. We will confirm and verify your payment shortly — this usually takes a few minutes.",
   paidMessage: "Your payment has been verified and completed successfully. Thank you for your payment.",
@@ -1148,9 +1226,27 @@ function Checkout() {
   useEffect(() => {
     fetch(`${API_URL}/api/public/pay-settings`)
       .then((res) => res.json())
-      .then((data) => { if (data?.title) setSettings(data); })
+      .then((data) => { if (data?.data?.title) setSettings(data.data); })
       .catch(() => setSettings(defaultPaySettings))
       .finally(() => setSettingsLoaded(true));
+  }, []);
+
+  // Real-time pay-settings updates: when an admin saves /admin/pay-settings,
+  // the backend emits `pay-settings.updated` over Socket.IO. The open checkout
+  // applies it immediately — no page refresh. If the socket is unavailable the
+  // initial API fetch above keeps the page fully functional.
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onPaySettingsUpdated = (updated: Partial<PaySettings>) => {
+      if (updated && typeof updated === "object") {
+        setSettings((prev) => ({ ...prev, ...updated }));
+      }
+    };
+    socket.on("pay-settings.updated", onPaySettingsUpdated);
+    return () => {
+      socket.off("pay-settings.updated", onPaySettingsUpdated);
+    };
   }, []);
 
   // Provider methods for the payment method buttons (DB-driven /api/public/providers,
@@ -1196,10 +1292,8 @@ function Checkout() {
     return () => { cancelled = true; };
   }, [sessionToken]);
 
-  // Fall back to pay-settings legacy enabledProviders if the DB has no methods.
-  const methodCodes = providers.length > 0
-    ? providers.map((p) => p.code)
-    : settings.enabledProviders;
+  // Active provider list comes from the DB (PaymentMethod.isActive via /api/public/providers).
+  const methodCodes = providers.map((p) => p.code);
 
   // Selecting a payment method immediately mints a secure one-time invoice and
   // redirects to it. The amount is always the server-resolved session amount —
@@ -1250,9 +1344,9 @@ function Checkout() {
               <span>Why did this happen?</span>
               The payment session may have already been used, may have expired, or the link may be incorrect.
             </div>
-            <div className="secure-line"><Shield size={13} />Secured by ZI Pay</div>
+            <div className="secure-line"><Shield size={13} />{settings.securedByText || "Secured by ZI Pay"}</div>
           </div>
-          <p className="checkout-footer">Powered by ZI Pay Payment Gateway</p>
+          <p className="checkout-footer">{settings.footerText || "Powered by ZI Pay Payment Gateway"}</p>
         </div>
       </div>
     );
@@ -1265,29 +1359,26 @@ function Checkout() {
   return (
     <div className="checkout-page">
       <div className="checkout-shell">
-        {settings.showBranding && (
-          <div className="checkout-brand-row">
-            <Brand />
+        <header className="checkout-header">
+          <div className="checkout-logo">
+            <Zap size={16} fill="currentColor" />
           </div>
-        )}
-        <div className="checkout-copy">
-          <span className="checkout-kicker">{settings.subtitle}</span>
-          <h1>{settings.title}</h1>
-          <p>{settings.description}</p>
-        </div>
+          <strong>ZiPAY GATEWAY</strong>
+        </header>
         <div className="checkout-card">
           <div className="checkout-amount-line">
-            <span>Amount to pay</span>
+            <span>Amount to Pay</span>
             <strong>৳ {sessionAmount.toLocaleString("en-BD")}</strong>
           </div>
           <div className="provider-selector">
-            <span className="field-label">Choose payment method</span>
+            <span className="field-label">Select Payment Method</span>
             <div className="provider-options">
               {methodCodes.map((item) => {
                 const cfg = findProvider(providers, item);
                 return (
                   <button type="button" key={item} className={`provider-option ${mintingProvider === item ? "selected" : ""}`} onClick={() => selectProvider(item)} disabled={!!mintingProvider}>
                     <span className={`provider-logo ${item}`}>{cfg.icon ? <img src={cfg.icon} alt={providerLabel(item)} /> : item[0]}</span><strong>{providerLabel(item)}</strong>
+                    <i>{mintingProvider === item ? "↻" : "›"}</i>
                   </button>
                 );
               })}
@@ -1295,10 +1386,9 @@ function Checkout() {
           </div>
 
           {error && <div className="form-error">{error}</div>}
-          {mintingProvider && <p className="checkout-hint">Creating your secure invoice...</p>}
-          <div className="secure-line"><Shield size={13} />Secured by ZI Pay</div>
+          {mintingProvider && <p className="checkout-hint">Creating your secure invoice…</p>}
+          <div className="secure-line"><Shield size={13} />{settings.securedByText || "Secured by ZI Pay"}</div>
         </div>
-        <p className="checkout-footer">Powered by ZI Pay Payment Gateway</p>
       </div>
     </div>
   );
@@ -1393,9 +1483,26 @@ function InvoicePayment() {
   useEffect(() => {
     fetch(`${API_URL}/api/public/pay-settings`)
       .then((res) => res.json())
-      .then((data) => { if (data?.title) setSettings(data); })
+      .then((data) => { if (data?.data?.title) setSettings(data.data); })
       .catch(() => setSettings(defaultPaySettings))
       .finally(() => setSettingsLoaded(true));
+  }, []);
+
+  // Real-time pay-settings updates (same contract as Checkout) — an admin
+  // save on /admin/pay-settings propagates instantly to this open invoice
+  // page via the `pay-settings.updated` Socket.IO event, no refresh needed.
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onPaySettingsUpdated = (updated: Partial<PaySettings>) => {
+      if (updated && typeof updated === "object") {
+        setSettings((prev) => ({ ...prev, ...updated }));
+      }
+    };
+    socket.on("pay-settings.updated", onPaySettingsUpdated);
+    return () => {
+      socket.off("pay-settings.updated", onPaySettingsUpdated);
+    };
   }, []);
 
   // ── Load active providers (DB-driven list) ──
@@ -1474,8 +1581,7 @@ function InvoicePayment() {
   // All display values come from the backend invoice response.
   const resolvedProvider =
     (invoiceData?.provider as string) ||
-    (providers.length > 0 ? providers[0].code : settings.enabledProviders?.[0]) ||
-    "bkash";
+    (providers.length > 0 ? providers[0].code : "bkash");
   const amount = toWholeTaka(invoiceData?.amount) || 0;
 
   // Provider config from the DB-driven list (falls back to built-in defaults).
@@ -1489,6 +1595,9 @@ function InvoicePayment() {
   const providerAccount = resolvedProviderConfig.accountNumber || invoiceData?.merchantAccount || settings.merchantAccount || "";
   const providerAccountName = resolvedProviderConfig.accountName || invoiceData?.merchantName || settings.title || "ZiPAY Merchant";
   const providerAccountType = resolvedProviderConfig.accountType || "";
+  // A "QR-only" provider: paid by scanning the QR, so there is no wallet number
+  // to display. The Bangla QR form stores accountNumber === code as a placeholder.
+  const isQrProvider = !!resolvedProviderConfig.qrImageUrl && resolvedProviderConfig.accountNumber === resolvedProviderConfig.code;
 
   // Resolve return URL. Explicit cb (validated) wins; otherwise the
   // configured MAIN_SITE_URL fallback. document.referrer is NOT used —
@@ -1496,14 +1605,29 @@ function InvoicePayment() {
   // strand the customer on the gateway homepage after payment.
   const returnUrl = resolveReturnUrl(cb);
 
+  // After a successful payment, show the success card briefly, then send the
+  // customer back to the main site.
+  const isPaid = invoiceData?.status === "paid";
+  const [redirectIn, setRedirectIn] = useState(5);
+  useEffect(() => {
+    if (!isPaid) return;
+    setRedirectIn(5);
+    const base = MAIN_SITE_URL || (returnUrl ? (() => { try { return new URL(returnUrl).origin; } catch { return ""; } })() : "");
+    if (!base) return;
+    const countdown = setInterval(() => setRedirectIn((s) => (s > 1 ? s - 1 : 0)), 1000);
+    const timeout = setTimeout(() => { window.location.href = base; }, 5000);
+    return () => { clearInterval(countdown); clearTimeout(timeout); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaid]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trxId.trim() || !payerNumber.trim() || submitting) return;
+    if (!trxId.trim() || (!isQrProvider && !payerNumber.trim()) || submitting) return;
     setSubmitting(true);
     setError("");
     try {
       const confirmTrx = trxId.trim().toUpperCase();
-      const confirmedPayer = payerNumber.trim();
+      const confirmedPayer = (isQrProvider ? "" : payerNumber.trim());
       // Persist confirmed details locally as a fallback when no return URL is known.
       sessionStorage.setItem("zi-pay-invoice-confirm", JSON.stringify({
         provider: resolvedProvider,
@@ -1513,17 +1637,39 @@ function InvoicePayment() {
         status: "pending",
       }));
 
-      // Navigate back to main site /payment/process which will create the order.
-      // Pass both trxId and payerNumber via query since sessionStorage is origin-scoped.
-      if (returnUrl) {
-        const sep = returnUrl.includes("?") ? "&" : "?";
-        // orderId (if present) is returned too so the main site can reuse the
-        // exact order number the invoice displayed.
-        const orderParam = invoiceData?.orderId ? `&orderId=${encodeURIComponent(invoiceData.orderId)}` : "";
-        window.location.href = `${returnUrl}${sep}provider=${resolvedProvider}&amount=${toWholeTaka(amount)}&trxId=${encodeURIComponent(confirmTrx)}&payerNumber=${encodeURIComponent(confirmedPayer)}${orderParam}`;
-      } else {
-        // No origin known — show success state instead.
-        setError("return_missing");
+      // Create a one-time payment result on the gateway backend, then redirect
+      // the browser to the main site /payment/process carrying ONLY the result
+      // id + token. The amount, provider, trxId and payerNumber never appear in
+      // the URL — the main site resolves them server-to-server.
+      try {
+        const res = await fetch(`${API_URL}/api/v1/payment-results`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: resolvedProvider,
+            amount: toWholeTaka(amount),
+            currency: "BDT",
+            orderId: invoiceData?.orderId || "",
+            trxId: confirmTrx,
+            payerNumber: confirmedPayer,
+            merchantName: providerAccountName,
+            paymentRequestId: invoiceData?.requestId || "",
+          }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || !payload?.data?.requestId || !payload?.data?.secureToken) {
+          throw new Error("Could not create payment result");
+        }
+        const { requestId, secureToken } = payload.data;
+        if (returnUrl) {
+          const sep = returnUrl.includes("?") ? "&" : "?";
+          window.location.href = `${returnUrl}${sep}resultId=${encodeURIComponent(requestId)}&token=${encodeURIComponent(secureToken)}`;
+        } else {
+          // No origin known — show success state instead.
+          setError("return_missing");
+        }
+      } catch {
+        setError("Could not confirm payment");
       }
     } catch {
       setError("Could not confirm payment");
@@ -1662,12 +1808,17 @@ function InvoicePayment() {
                 </div>
               )}
             </div>
+            {isPaid && redirectIn > 0 && (
+              <p className="bk-success-text" style={{ marginTop: 14, textAlign: "center" }}>
+                Redirecting to the store in <strong>{redirectIn}</strong>s...
+              </p>
+            )}
             <button
               className="bk-btn bk-btn--primary"
               style={{ width: "100%" }}
               onClick={() => { const u = returnUrl || (MAIN_SITE_URL ? `${MAIN_SITE_URL.replace(/\/$/, "")}/checkout` : "/payment"); window.location.href = u; }}
             >
-              Back to Store <ArrowUpRight size={16} />
+              {isPaid && redirectIn === 0 ? "Go to Store" : "Back to Store"} <ArrowUpRight size={16} />
             </button>
           </div>
         </motion.div>
@@ -1753,28 +1904,30 @@ function InvoicePayment() {
               <span className="bk-invoice-label">Merchant:</span>
               <span className="bk-invoice-value">{providerAccountName}</span>
             </div>
-            {providerAccountType && (
+            {!isQrProvider && providerAccountType && (
               <div className="bk-invoice-row">
                 <span className="bk-invoice-label">Account Type:</span>
                 <span className="bk-invoice-value">{providerAccountType}</span>
               </div>
             )}
-            <div className="bk-invoice-row">
-              <span className="bk-invoice-label">Merchant Account:</span>
-              <span className="bk-invoice-value" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                {providerAccount || "—"}
-                {providerAccount ? (
-                  <button
-                    type="button"
-                    onClick={() => copyMerchantNumber(providerAccount)}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: copiedMerchant ? "#22c55e" : "#9ca3af" }}
-                    title={copiedMerchant ? "Copied!" : "Copy number"}
-                  >
-                    {copiedMerchant ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-                  </button>
-                ) : null}
-              </span>
-            </div>
+            {!isQrProvider && (
+              <div className="bk-invoice-row">
+                <span className="bk-invoice-label">Merchant Account:</span>
+                <span className="bk-invoice-value" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {providerAccount || "—"}
+                  {providerAccount ? (
+                    <button
+                      type="button"
+                      onClick={() => copyMerchantNumber(providerAccount)}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: copiedMerchant ? "#22c55e" : "#9ca3af" }}
+                      title={copiedMerchant ? "Copied!" : "Copy number"}
+                    >
+                      {copiedMerchant ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            )}
             {invoiceData?.orderId && (
               <div className="bk-invoice-row">
                 <span className="bk-invoice-label">Invoice:</span>
@@ -1797,8 +1950,10 @@ function InvoicePayment() {
                 <p className="bk-provider-acct" style={{ marginTop: 8 }}>{resolvedProviderConfig.accountName}</p>
               )}
               <p className="bk-provider-acct" style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
-                Scan to pay with {providerLabel(resolvedProvider)} — or send to{" "}
-                <strong style={{ color: "var(--text)" }}>{providerAccount || "the merchant number"}</strong>
+                {isQrProvider
+                  ? `Scan to pay with ${providerLabel(resolvedProvider)}`
+                  : `Scan to pay with ${providerLabel(resolvedProvider)} — or send to{" "}
+                <strong style={{ color: "var(--text)" }}>{providerAccount || "the merchant number"}</strong>`}
               </p>
             </div>
           )}
@@ -1816,9 +1971,9 @@ function InvoicePayment() {
             </div>
           )}
 
-          {/* Provider Color Section — 2-step flow */}
+          {/* Provider Color Section — 2-step flow (1-step for QR providers) */}
           <motion.div
-            key={resolvedProvider + formStep}
+            key={resolvedProvider + (isQrProvider ? "trx" : formStep)}
             className="bk-pay-box"
             style={{ background: providerColor }}
             initial={{ opacity: 0, y: 8 }}
@@ -1827,14 +1982,16 @@ function InvoicePayment() {
           >
             <h2 className="bk-pay-title">{providerLabel(resolvedProvider)}</h2>
             <p className="bk-pay-sub">
-              {formStep === "phone"
-                ? "Your " + providerLabel(resolvedProvider) + " Account Number"
-                : "Transaction ID from SMS"
+              {isQrProvider
+                ? "Transaction ID from SMS"
+                : formStep === "phone"
+                  ? "Your " + providerLabel(resolvedProvider) + " Account Number"
+                  : "Transaction ID from SMS"
               }
             </p>
 
-            {/* Step 1 — Phone number */}
-            {formStep === "phone" && (
+            {/* Step 1 — Phone number (hidden for QR providers) */}
+            {!isQrProvider && formStep === "phone" && (
               <div className="bk-bignum-wrap">
                 <input
                   className="bk-bignum"
@@ -1852,8 +2009,8 @@ function InvoicePayment() {
               </div>
             )}
 
-            {/* Step 2 — TRX ID */}
-            {formStep === "trx" && (
+            {/* Step 2 — TRX ID (always shown; the only field for QR providers) */}
+            {(isQrProvider || formStep === "trx") && (
               <div className="bk-bignum-wrap">
                 <input
                   className="bk-bignum"
@@ -1867,14 +2024,16 @@ function InvoicePayment() {
             )}
 
             <p className="bk-pay-hint">
-              {formStep === "phone"
-                ? "Enter the " + providerLabel(resolvedProvider) + " number you paid from"
-                : "You'll find this in your payment confirmation SMS"
+              {isQrProvider
+                ? "You'll find this in your payment confirmation SMS"
+                : formStep === "phone"
+                  ? "Enter the " + providerLabel(resolvedProvider) + " number you paid from"
+                  : "You'll find this in your payment confirmation SMS"
               }
             </p>
 
             <div className="bk-btn-row">
-              {formStep === "trx" && (
+              {!isQrProvider && formStep === "trx" && (
                 <button
                   type="button"
                   className="bk-btn bk-btn--ghost"
@@ -1884,7 +2043,7 @@ function InvoicePayment() {
                   Back
                 </button>
               )}
-              {formStep === "phone" && (
+              {!isQrProvider && formStep === "phone" && (
                 <button
                   type="button"
                   className="bk-btn bk-btn--ghost"
@@ -1904,7 +2063,44 @@ function InvoicePayment() {
                   Close
                 </button>
               )}
-              {formStep === "phone" ? (
+              {isQrProvider ? (
+                <>
+                  <button
+                    type="button"
+                    className="bk-btn bk-btn--ghost"
+                    disabled={submitting}
+                    style={{ color: "#fff", background: "rgba(255,255,255,0.2)" }}
+                    onClick={() => {
+                      if (MAIN_SITE_URL) {
+                        window.location.href = `${MAIN_SITE_URL}/checkout`;
+                      } else if (returnUrl) {
+                        try {
+                          const base = new URL(returnUrl);
+                          window.location.href = base.origin + "/checkout";
+                        } catch { window.history.back(); }
+                      } else { window.history.back(); }
+                    }}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    className="bk-btn bk-btn--primary"
+                    style={{ background: "#fff", color: providerColor, opacity: termsAccepted ? 1 : 0.5 }}
+                    disabled={submitting || timeLeft === 0 || !trxId.trim() || !termsAccepted}
+                    onClick={(e) => submit(e)}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="bk-spinner" style={{ width: 16, height: 16, borderWidth: 2, borderTopColor: providerColor, animationDuration: "0.6s" }} />
+                        Processing...
+                      </>
+                    ) : (
+                      <>Confirm <ChevronRight size={16} /></>
+                    )}
+                  </button>
+                </>
+              ) : formStep === "phone" ? (
                 <button
                   type="button"
                   className="bk-btn bk-btn--primary"
@@ -2202,11 +2398,6 @@ function GatewaySettings() {
             <SettingsField label="Minimum Payment Amount"><input type="number" value={data.minPaymentAmount ?? 1} onChange={(e) => update("minPaymentAmount", Number(e.target.value))} style={inputStyle} /></SettingsField>
             <SettingsField label="Maximum Payment Amount"><input type="number" value={data.maxPaymentAmount ?? 500000} onChange={(e) => update("maxPaymentAmount", Number(e.target.value))} style={inputStyle} /></SettingsField>
           </div>
-          <SettingsField label="Default Provider">
-            <select value={data.defaultProvider || "bkash"} onChange={(e) => update("defaultProvider", e.target.value)} style={inputStyle}>
-              <option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option>
-            </select>
-          </SettingsField>
         </SettingsSection>
         <SettingsSection title="Automation">
           <SettingsToggle label="Duplicate Transaction Protection" checked={data.duplicateTransactionProtection ?? true} onChange={(v) => update("duplicateTransactionProtection", v)} />

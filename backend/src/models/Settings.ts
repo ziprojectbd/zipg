@@ -1,20 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import type { PaymentProvider } from './Transaction.js';
 
 export interface IPaySettings {
   title: string;
   subtitle: string;
   description: string;
-  enabledProviders: PaymentProvider[];
-  merchantBkashNumber: string;
-  merchantNagadNumber: string;
-  merchantRocketNumber: string;
-  instructions: {
-    bkash: string;
-    nagad: string;
-    rocket: string;
-    upay?: string;
-  };
   showBranding: boolean;
   primaryColor: string;
   logoUrl?: string;
@@ -35,6 +24,8 @@ export interface IPaySettings {
   cancelledMessage?: string;
   rejectedMessage?: string;
   supportMessage?: string;
+  /* ── Checkout page secure-line text ── */
+  securedByText?: string;
 }
 
 export interface ISystemSettings {

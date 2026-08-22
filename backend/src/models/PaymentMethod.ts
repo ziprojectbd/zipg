@@ -36,8 +36,10 @@ export interface IPaymentMethod extends Document {
 const paymentMethodSchema = new Schema<IPaymentMethod>(
   {
     code: {
+      // Custom provider codes are allowed (e.g. Bangla QR providers) — the
+      // invoice page and provider list are DB-driven. Slug-format only.
       type: String,
-      enum: ['bkash', 'nagad', 'rocket', 'upay'],
+      match: /^[a-z0-9]{1,20}$/,
       required: true,
       unique: true,
     },

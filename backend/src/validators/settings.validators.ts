@@ -25,7 +25,6 @@ export const updateGatewaySettingsSchema = z.object({
   autoVerify: z.boolean().optional(),
   autoExpirePendingOrders: z.boolean().optional(),
   autoExpireAfterMinutes: z.number().min(1).max(1440).optional(),
-  defaultProvider: z.enum(['bkash', 'nagad', 'rocket']).optional(),
   defaultCurrency: z.string().length(3).optional(),
 });
 

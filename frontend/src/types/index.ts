@@ -139,16 +139,6 @@ export interface PaySettings {
   title: string;
   subtitle: string;
   description: string;
-  enabledProviders: PaymentProvider[];
-  merchantBkashNumber: string;
-  merchantNagadNumber: string;
-  merchantRocketNumber: string;
-  instructions: {
-    bkash: string;
-    nagad: string;
-    rocket: string;
-    upay?: string;
-  };
   showBranding: boolean;
   primaryColor: string;
   logoUrl?: string;

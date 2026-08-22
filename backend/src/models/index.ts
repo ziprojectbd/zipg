@@ -12,3 +12,4 @@ export { PaymentSession, type IPaymentSession } from './PaymentSession.js';
 export { ActivityLog, type IActivityLog, type ActivityAction, type ActivitySeverity } from './ActivityLog.js';
 export { Refund, type IRefund, type RefundStatus } from './Refund.js';
 export { SmsTransaction, type ISmsTransaction, type SmsCategory, type SmsStatus } from './SmsTransaction.js';
+export { default as PaymentResult, type IPaymentResult } from './PaymentResult.js';

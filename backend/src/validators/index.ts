@@ -28,9 +28,12 @@ export const updateUserSchema = z.object({
 });
 
 /* ────────── Payment / Transaction ────────── */
+/** Provider code — any lowercase slug (core wallets + custom Bangla QR providers). */
+const providerCode = z.string().regex(/^[a-z0-9]{1,20}$/, 'Invalid provider code');
+
 export const publicPaymentSchema = z.object({
   amount: z.number().positive().max(10_000_000).transform(Math.round),
-  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
+  provider: providerCode,
   customerName: z.string().min(2).max(120).optional(),
   customerPhone: z.string().regex(/^01\d{9}$/, 'Must be a valid Bangladeshi mobile number').optional(),
   trxId: z.string().trim().min(3).max(80),
@@ -64,7 +67,7 @@ export const invoiceMintSchema = z.object({
   // same integer it computed server-side, but we re-normalize defensively so
   // a fractional amount can never mint a fractional invoice.
   amount: z.number().positive().max(10_000_000).transform(Math.round),
-  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
+  provider: providerCode,
   currency: z.string().length(3).default('BDT').optional(),
   merchantName: z.string().trim().max(200).optional(),
   merchantAccount: z.string().trim().max(20).optional(),
@@ -74,7 +77,7 @@ export const invoiceMintSchema = z.object({
 export const merchantPaymentSchema = z.object({
   amount: z.number().positive().max(10_000_000).transform(Math.round),
   currency: z.string().length(3).default('BDT'),
-  provider: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
+  provider: providerCode,
   customerName: z.string().min(2).max(120),
   customerPhone: z.string().regex(/^01\d{9}$/, 'Must be a valid Bangladeshi mobile number'),
   description: z.string().max(240).optional(),
@@ -188,16 +191,6 @@ export const updatePaySettingsSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   subtitle: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
-  enabledProviders: z.array(z.enum(['bkash', 'nagad', 'rocket', 'upay'])).optional(),
-  merchantBkashNumber: z.string().max(20).optional(),
-  merchantNagadNumber: z.string().max(20).optional(),
-  merchantRocketNumber: z.string().max(20).optional(),
-  instructions: z.object({
-    bkash: z.string().max(500),
-    nagad: z.string().max(500),
-    rocket: z.string().max(500),
-    upay: z.string().max(500),
-  }).partial().optional(),
   showBranding: z.boolean().optional(),
   primaryColor: z.string().max(30).optional(),
   logoUrl: z.string().optional(),
@@ -207,6 +200,7 @@ export const updatePaySettingsSchema = z.object({
   invoiceHeading: z.string().max(200).optional(),
   invoiceDescription: z.string().max(500).optional(),
   footerText: z.string().max(200).optional(),
+  securedByText: z.string().max(200).optional(),
   supportEmail: z.string().max(200).optional(),
   supportPhone: z.string().max(30).optional(),
   pendingPaymentMessage: z.string().max(500).optional(),
@@ -233,7 +227,7 @@ export const updateSystemSettingsSchema = z.object({
 
 /* ────────── Payment Method ────────── */
 export const updatePaymentMethodSchema = z.object({
-  code: z.enum(['bkash', 'nagad', 'rocket', 'upay']).optional(),
+  code: z.string().regex(/^[a-z0-9]{1,20}$/, 'Code must be a lowercase slug').optional(),
   name: z.string().min(1).max(100).optional(),
   displayName: z.string().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
@@ -254,9 +248,9 @@ export const updatePaymentMethodSchema = z.object({
   sortOrder: z.number().optional(),
 });
 
-/** Create a new payment method (new provider, e.g. upay). */
+/** Create a new payment method (new provider, e.g. upay or a Bangla QR provider). */
 export const createPaymentMethodSchema = updatePaymentMethodSchema.extend({
-  code: z.enum(['bkash', 'nagad', 'rocket', 'upay']),
+  code: z.string().regex(/^[a-z0-9]{1,20}$/, 'Code must be a lowercase slug'),
   name: z.string().min(1).max(100),
   displayName: z.string().min(1).max(100),
   accountNumber: z.string().min(1).max(20),
@@ -264,7 +258,7 @@ export const createPaymentMethodSchema = updatePaymentMethodSchema.extend({
 
 /** Reorder payment methods by array of provider codes. */
 export const reorderPaymentMethodsSchema = z.object({
-  codes: z.array(z.enum(['bkash', 'nagad', 'rocket', 'upay'])).min(1),
+  codes: z.array(z.string().regex(/^[a-z0-9]{1,20}$/)).min(1),
 });
 
 /* ────────── SMS Parser / Manual Verification ────────── */

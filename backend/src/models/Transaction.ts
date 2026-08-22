@@ -42,8 +42,9 @@ const transactionSchema = new Schema<ITransaction>(
       index: true,
     },
     provider: {
+      // Custom provider codes allowed (e.g. Bangla QR providers).
       type: String,
-      enum: ['bkash', 'nagad', 'rocket', 'upay'],
+      match: /^[a-z0-9]{1,20}$/,
       required: true,
       index: true,
     },

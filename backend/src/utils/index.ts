@@ -16,10 +16,11 @@ export function generateTransactionId(): string {
 }
 
 /**
- * Generate a request ID
+ * Generate a request ID — unguessable, no timestamp component.
+ * 128 bits of randomness via 16 bytes → 32 hex chars.
  */
 export function generateRequestId(): string {
-  return `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  return `REQ-${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
 }
 
 /**

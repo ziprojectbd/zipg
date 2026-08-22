@@ -62,7 +62,6 @@ export const DEFAULT_SETTINGS: Record<string, Record<string, unknown>> = {
     autoVerify: true,
     autoExpirePendingOrders: true,
     autoExpireAfterMinutes: 30,
-    defaultProvider: 'bkash',
     defaultCurrency: 'BDT',
   },
   security: {

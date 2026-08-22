@@ -92,8 +92,11 @@ const paymentRequestSchema = new Schema<IPaymentRequest>(
       length: 3,
     },
     provider: {
+      // Custom provider codes allowed (e.g. Bangla QR providers). SMS
+      // auto-verification only matches the core wallets, so a custom provider
+      // simply stays pending until manual verification.
       type: String,
-      enum: ['bkash', 'nagad', 'rocket', 'upay'],
+      match: /^[a-z0-9]{1,20}$/,
       required: true,
       index: true,
     },

@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { createActivityLog } from './activityLog.service.js';
 import { appConfig } from '../config/app.js';
 import { generateSecureInvoiceFields } from './invoice.service.js';
+import { generateRequestId } from '../utils/index.js';
 
 interface CreatePaymentInput {
   amount: number;
@@ -41,7 +42,7 @@ interface SecureInvoiceResult {
 }
 
 export async function createPayment(input: CreatePaymentInput) {
-  const requestId = `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  const requestId = generateRequestId();
   const expiresAt = new Date(Date.now() + appConfig.payment.defaultExpiryMinutes * 60 * 1000);
 
   // Every new payment is also a secure invoice — high-entropy public ID and
@@ -120,7 +121,7 @@ export async function createPublicPayment(input: CreatePublicPaymentInput) {
     throw new AppError('This transaction ID has already been submitted', 409, 'DUPLICATE_TRANSACTION');
   }
 
-  const requestId = `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  const requestId = generateRequestId();
   const transactionId = `TXN-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
   const expiresAt = new Date(Date.now() + appConfig.payment.defaultExpiryMinutes * 60 * 1000);
 

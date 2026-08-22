@@ -2,6 +2,7 @@ import { Settings } from '../models/index.js';
 import type { IPaySettings, ISystemSettings } from '../models/Settings.js';
 import { createActivityLog } from './activityLog.service.js';
 import { cacheGet, cacheSet, cacheDel } from './cache.service.js';
+import { emitSettingsUpdated } from '../socket/index.js';
 
 export const PAY_SETTINGS_CACHE_KEY = 'pay_settings_public';
 
@@ -9,15 +10,6 @@ const DEFAULT_PAY_SETTINGS: IPaySettings = {
   title: 'ZI PREMIUM SERVICES',
   subtitle: 'Secure checkout',
   description: 'Complete your payment through bKash, Nagad, or Rocket. Your transaction will be verified automatically.',
-  enabledProviders: ['bkash', 'nagad', 'rocket'],
-  merchantBkashNumber: '01614602084',
-  merchantNagadNumber: '01614602084',
-  merchantRocketNumber: '01614602084',
-  instructions: {
-    bkash: 'Send money to the bKash number shown by the merchant.',
-    nagad: 'Send money to the Nagad number shown by the merchant.',
-    rocket: 'Send money to the Rocket number shown by the merchant.',
-  },
   showBranding: true,
   primaryColor: '#8b5cf6',
   merchantName: 'ZI Premium Services',
@@ -25,6 +17,7 @@ const DEFAULT_PAY_SETTINGS: IPaySettings = {
   invoiceHeading: 'Complete Your Payment',
   invoiceDescription: 'Pay securely using your preferred mobile wallet. Your payment will be verified automatically.',
   footerText: 'Powered by ZiPAY',
+  securedByText: 'Secured by ZI Pay',
   supportEmail: 'support@zipremiumservices.com',
   supportPhone: '01614602084',
   pendingPaymentMessage: 'Please complete your payment using the instructions below. Your invoice will expire soon.',
@@ -69,7 +62,6 @@ export async function updatePaySettings(
   const updated: IPaySettings = {
     ...current,
     ...data,
-    instructions: { ...current.instructions, ...(data.instructions ?? {}) },
   };
 
   await Settings.findOneAndUpdate(
@@ -85,6 +77,10 @@ export async function updatePaySettings(
 
   // Invalidate the public cache so the invoice page sees the change immediately.
   cacheDel(PAY_SETTINGS_CACHE_KEY);
+
+  // Broadcast the new settings to open checkout/invoice pages. Only fires
+  // here — after the DB upsert succeeded above — so a failed save never emits.
+  emitSettingsUpdated(updated);
 
   await createActivityLog({
     userId,

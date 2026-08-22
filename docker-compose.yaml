@@ -94,6 +94,10 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
+    # Cap WiredTiger cache explicitly: by default Mongo sizes it from HOST RAM
+    # (not the container limit), so on a large host it OOMs under the 1G cap
+    # and the healthcheck never passes.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
     # Internal only — never expose the DB port to the public internet.
     expose:
       - "27017"
@@ -106,8 +110,8 @@ services:
       test: ["CMD-SHELL", "mongosh --quiet -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""]
       interval: 10s
       timeout: 5s
-      start_period: 20s
-      retries: 10
+      start_period: 60s
+      retries: 12
     deploy:
       resources:
         limits:

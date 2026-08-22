@@ -107,7 +107,12 @@ services:
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""]
+      # Unauthenticated ping: mongod accepts `ping` without credentials, so the
+      # check only asserts "Mongo is up". This avoids false "unhealthy" verdicts
+      # when the persisted volume was initialized with different credentials
+      # than the current MONGO_ROOT_* env vars — the backend's own DB retry
+      # loop handles auth failures with visible logs instead of blocking deploys.
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" || exit 1"]
       interval: 10s
       timeout: 5s
       start_period: 60s

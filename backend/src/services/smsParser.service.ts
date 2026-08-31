@@ -41,7 +41,9 @@ const DEFAULT_PARSER_RULES: Record<string, string> = {
 };
 
 const PHONE_REGEX = /01\d{9}/;
-const AMOUNT_REGEX = /(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+(?:\.\d+)?)/i;
+// Real bKash/Nagad/Rocket SMS put the amount BEFORE the currency
+// ("100.00 BDT"), but some formats put it after ("BDT 100.00"). Match both.
+const AMOUNT_REGEX = /(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)[:\s]*(?:BDT|Tk|টাকা|TK)/i;
 const SENDER_KW: Record<string, string[]> = {
   bkash: ['bKash', 'বিকাশ'],
   nagad: ['Nagad', 'নগদ'],
@@ -99,7 +101,9 @@ function extractPhone(rawSms: string): string | null {
 function extractAmount(rawSms: string): number | null {
   const m = rawSms.match(AMOUNT_REGEX);
   if (!m) return null;
-  return parseFloat(m[1].replace(/,/g, ''));
+  const raw = m[1] || m[2];
+  if (!raw) return null;
+  return parseFloat(raw.replace(/,/g, ''));
 }
 
 function extractTxnId(rawSms: string, regex: RegExp): string | null {

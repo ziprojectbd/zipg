@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import mongoose from 'mongoose';
 import { Transaction, PaymentRequest, type IPaymentRequest, type TransactionStatus, type PaymentProvider } from '../models/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { createActivityLog } from './activityLog.service.js';
@@ -176,9 +177,13 @@ export async function createPublicPayment(input: CreatePublicPaymentInput) {
 }
 
 export async function getPayment(identifier: string) {
-  const payment = await Transaction.findOne({
-    $or: [{ transactionId: identifier }, { _id: identifier }],
-  }).lean();
+  const filter: Record<string, unknown> = { transactionId: identifier };
+  if (mongoose.Types.ObjectId.isValid(identifier)) {
+    filter.$or = [{ transactionId: identifier }, { _id: identifier }];
+    delete filter.transactionId;
+  }
+
+  const payment = await Transaction.findOne(filter).lean();
 
   if (!payment) {
     throw new AppError('Payment not found', 404, 'PAYMENT_NOT_FOUND');

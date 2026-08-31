@@ -1,9 +1,15 @@
 import { Router } from 'express';
 import * as paymentCtrl from '../controllers/payment.controller.js';
+import * as deviceCtrl from '../controllers/device.controller.js';
 import { authenticate, authenticateApiKey, validate, smsLimiter } from '../middleware/index.js';
-import { smsPayloadSchema, rawSmsPayloadSchema, requestIdParamSchema } from '../validators/index.js';
+import { smsPayloadSchema, rawSmsPayloadSchema, requestIdParamSchema, registerDeviceSchema, deviceHeartbeatSchema } from '../validators/index.js';
 
 const router = Router();
+
+// Android device — register & heartbeat (unauthenticated so the Android app
+// can pair without an admin token; approval is enforced on SMS processing)
+router.post('/devices/register', validate({ body: registerDeviceSchema }), deviceCtrl.registerDeviceController);
+router.post('/devices/heartbeat', validate({ body: deviceHeartbeatSchema }), deviceCtrl.heartbeatController);
 
 // Android SMS receiver — new raw-SMS endpoint (server-side parsing)
 router.post('/sms/raw', smsLimiter, validate({ body: rawSmsPayloadSchema }), paymentCtrl.smsController);

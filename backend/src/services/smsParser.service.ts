@@ -337,7 +337,6 @@ export async function processIncomingSms(input: ProcessSmsInput) {
         { status: 'paid', transactionId: parsed.transactionId },
       );
     }
-
     await createActivityLog({
       action: 'payment_paid',
       message: `SMS auto-matched: ${matchedTransaction.transactionId} — ${parsed.amount} BDT via ${parsed.provider}`,

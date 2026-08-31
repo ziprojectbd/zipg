@@ -128,7 +128,7 @@ export async function createPublicPayment(input: CreatePublicPaymentInput) {
   // Embed secure invoice fields so every public payment is also a secure invoice.
   const secure = await generateSecureInvoiceFields({ requestId });
 
-  await PaymentRequest.create({
+  const paymentRequest = await PaymentRequest.create({
     requestId,
     publicInvoiceId: secure.publicInvoiceId,
     secureTokenHash: secure.secureTokenHash,
@@ -151,6 +151,7 @@ export async function createPublicPayment(input: CreatePublicPaymentInput) {
 
   await Transaction.create({
     transactionId,
+    paymentRequestId: paymentRequest._id,
     provider: input.provider,
     amount: input.amount,
     currency: input.currency || 'BDT',

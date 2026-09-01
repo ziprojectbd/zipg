@@ -16,8 +16,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const clearStoredAuth = () => {
+    localStorage.removeItem('zi-pay-token');
+    localStorage.removeItem('zi-pay-refresh');
+  };
+
   const fetchUser = useCallback(async () => {
     const token = localStorage.getItem('zi-pay-token');
+    const refreshToken = localStorage.getItem('zi-pay-refresh');
     if (!token) {
       setLoading(false);
       return;
@@ -29,8 +35,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(data.data.user);
       }
     } catch {
-      localStorage.removeItem('zi-pay-token');
-      localStorage.removeItem('zi-pay-refresh');
+      // Access token may have expired — try to refresh it once before logging out.
+      if (refreshToken) {
+        try {
+          const { data: refreshData } = await authApi.refreshToken(refreshToken);
+          const refreshed = refreshData.data as LoginResponse;
+          if (refreshed?.accessToken) {
+            localStorage.setItem('zi-pay-token', refreshed.accessToken);
+            if (refreshed.refreshToken) {
+              localStorage.setItem('zi-pay-refresh', refreshed.refreshToken);
+            }
+            if (refreshed.user) {
+              setUser(refreshed.user);
+            } else {
+              const { data: meData } = await authApi.me();
+              if (meData.success) setUser(meData.data.user);
+            }
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Refresh failed — token is truly invalid.
+          clearStoredAuth();
+        }
+      } else {
+        clearStoredAuth();
+      }
     } finally {
       setLoading(false);
     }
@@ -55,8 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore logout errors
     }
-    localStorage.removeItem('zi-pay-token');
-    localStorage.removeItem('zi-pay-refresh');
+    clearStoredAuth();
     setUser(null);
   };
 

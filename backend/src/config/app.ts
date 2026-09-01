@@ -12,7 +12,7 @@ export const appConfig = {
 
   jwt: {
     secret: process.env.JWT_SECRET || 'zipay-jwt-secret-change-in-production',
-    accessTokenExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
+    accessTokenExpiry: process.env.JWT_ACCESS_EXPIRY || '7d',
     refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
     issuer: 'zi-pay',
   },

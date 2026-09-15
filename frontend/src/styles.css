@@ -1255,3 +1255,98 @@
 .provider-option i{color:#c1bdea;font-weight:700}
 .provider-option.selected i{color:#7c5cf0}
 .checkout-footer,.checkout-hint{font-weight:500}
+
+/* -------------------------------------------------------
+   ADMIN LIGHT THEME
+   The admin shell renders <div class="app dark|light">. Every rule below is
+   scoped to `.app.light`, so switching the toggle re-skins the whole admin
+   panel without touching the public landing / checkout / invoice pages.
+   Only `.app.light` is used by AdminLayout, so these overrides are isolated.
+   ------------------------------------------------------- */
+.app.light{
+  --bg:#f4f6fb;
+  --panel:#ffffff;
+  --panel2:#f7f8fc;
+  --line:#e4e7ee;
+  --muted:#6b7280;
+  --text:#111827;
+  /* Consumed by inline styles in main.tsx via var(--x, darkFallback). */
+  --input-bg:#ffffff;
+  --input-border:#dfe3ea;
+  --label-color:#3f4657;
+  --code-bg:#f6f7fb;
+  --heading:#0f172a;
+  background:var(--bg);
+  color:var(--text);
+}
+.app.light .sidebar{background:#ffffff;border-right-color:#e4e7ee;box-shadow:1px 0 0 rgba(15,23,42,.04)}
+.app.light .brand strong{color:#0f172a}
+.app.light .workspace{background:#f7f8fc;border-color:#e4e7ee}
+.app.light .workspace strong{color:#1f2937}
+.app.light .nav a,.app.light .nav-bottom a{color:#5b6472}
+.app.light .nav a:hover,.app.light .nav-bottom a:hover{background:#f1f3f9;color:#111827}
+.app.light .nav a.active{background:#efebff;color:#6d28d9}
+.app.light .nav a.active svg{color:#6d28d9}
+.app.light .user-card{border-top-color:#e4e7ee}
+.app.light .user-card strong{color:#1f2937}
+.app.light .topbar{background:#ffffff;border-bottom-color:#e4e7ee}
+.app.light .topbar h1,.app.light .page-intro h2,.app.light .resource-title h2{color:#0f172a}
+.app.light .eyebrow,.app.light .card-kicker{color:#8a93a3}
+.app.light .search{background:#f4f5f9;border-color:#e4e7ee;color:#6b7280}
+.app.light .search input{color:#111827}
+.app.light .search input::placeholder{color:#9ca3af}
+.app.light .search kbd{background:#ffffff;border-color:#dfe3ea;color:#6b7280}
+.app.light .icon-btn{color:#6b7280}
+.app.light .icon-btn:hover{background:#eef0f6;color:#111827}
+.app.light .outline-btn{color:#4b5563;border-color:#dfe3ea;background:#ffffff}
+.app.light .outline-btn:hover{background:#f3f4f8;color:#111827}
+.app.light .text-btn{color:#6d28d9}
+.app.light .card{background:#ffffff;border-color:#e4e7ee;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.app.light .card-heading h2,.app.light .card-heading h3,.app.light .resource-title h2{color:#0f172a}
+.app.light .page-intro p,.app.light .resource-page p{color:#6b7280}
+.app.light .metric-head{color:#6b7280}
+.app.light .metric>strong{color:#0f172a}
+.app.light .metric-foot{color:#6b7280}
+.app.light .metric-foot span{color:#6b7280}
+.app.light .metric-icon.purple{background:#efebff;color:#6d28d9}
+.app.light .metric-icon.green{background:#e6f7ef;color:#0f9d63}
+.app.light .metric-icon.blue{background:#e8f2fd;color:#1d6fd0}
+.app.light .metric-icon.orange{background:#fdf0e6;color:#c2691b}
+.app.light .chart-caption{color:#6b7280}
+.app.light .chart-card select{background:#f7f8fc;border-color:#e4e7ee;color:#374151}
+.app.light .chart:before{background:repeating-linear-gradient(to bottom,transparent 0,transparent 34px,#e8eaf0 35px)}
+.app.light .y-labels,.app.light .x-labels{color:#9ca3af}
+.app.light .provider-name strong{color:#1f2937}
+.app.light .provider-name small{color:#6b7280}
+.app.light .provider-percent{color:#6b7280}
+.app.light .progress{background:#e8eaf0}
+.app.light .transactions-card td{color:#4b5563}
+.app.light th{color:#6b7280;border-bottom-color:#e4e7ee}
+.app.light td{border-bottom-color:#eef0f5;color:#4b5563}
+.app.light td:first-child strong{color:#111827}
+.app.light td:first-child small{color:#6b7280}
+.app.light .mini-provider{background:#efebff;color:#6d28d9}
+.app.light .mini-provider.nagad{background:#fdf0e6;color:#c2691b}
+.app.light .mini-provider.rocket{background:#f2ebfa;color:#6b21a8}
+.app.light .health-score{background:#f7f8fc;border-color:#e4e7ee}
+.app.light .health-score>div:last-child strong{color:#1f2937}
+.app.light .health-list div{color:#4b5563}
+.app.light .health-list b{color:#0f9d63}
+.app.light .empty-card{background:#ffffff}
+.app.light .empty-card h3{color:#0f172a}
+.app.light .empty-card p{color:#6b7280}
+.app.light .empty-icon{background:#efebff;color:#6d28d9}
+.app.light .resource-page p{color:#6b7280}
+.app.light .scrim{background:rgba(15,23,42,.35)}
+.app.light .table-wrap table{background:#ffffff}
+/* Status + semantic colours keep their hue but darken for contrast on white. */
+.app.light .status{color:#6b7280}
+.app.light .status.paid{color:#0f9d63}
+.app.light .status.processing{color:#b7791f}
+.app.light .status.failed{color:#c2403f}
+.app.light .positive{color:#0f9d63}
+.app.light .score-ring{border-color:#0f9d63}
+.app.light .score-ring span{color:#6b7280}
+.app.light .workspace small,.app.light .user-card small{color:#6b7280}
+.app.light .mobile-close{color:#4b5563}
+.app.light .brand span{color:#6b7280}

@@ -587,8 +587,8 @@ function PaySettingsPage() {
 
   if (loading) return <div className="content"><p style={{ color: "var(--muted)" }}>Loading settings...</p></div>;
 
-  const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "#0d1119", color: "var(--text)" } as const;
-  const labelStyle = { display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 } as const;
+  const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "var(--input-bg, #0d1119)", color: "var(--text)" } as const;
+  const labelStyle = { display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 } as const;
 
   const renderMsg = (key: string, label: string, rows = 3) => (
     <label style={labelStyle}>
@@ -622,7 +622,7 @@ function PaySettingsPage() {
             <label style={labelStyle}>Support Phone <input type="text" value={settings.supportPhone || ""} onChange={(e) => update("supportPhone", e.target.value)} style={inputStyle} /></label>
           </div>
           <label style={labelStyle}>Primary Color <input type="color" value={settings.primaryColor || "#8b5cf6"} onChange={(e) => update("primaryColor", e.target.value)} style={{ ...inputStyle, padding: "4px 13px", height: 44 }} /></label>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#cbd0dc", fontSize: 12 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--label-color, #cbd0dc)", fontSize: 12 }}>
             <input type="checkbox" checked={settings.showBranding ?? true} onChange={(e) => update("showBranding", e.target.checked)} /> Show branding on checkout page
           </label>
         </div>
@@ -864,7 +864,7 @@ function PaymentMethodsPage() {
   };
 
   const field = (key: keyof MethodForm, label: string, placeholder = "") => (
-    <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+    <label style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>
       {label}
       <input
         type="text"
@@ -876,7 +876,7 @@ function PaymentMethodsPage() {
     </label>
   );
 
-  const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "#0d1119", color: "var(--text)" } as const;
+  const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "var(--input-bg, #0d1119)", color: "var(--text)" } as const;
 
   if (step === "edit" && editing) {
     return (
@@ -897,7 +897,7 @@ function PaymentMethodsPage() {
               {field("accountName", "Account Name", "Merchant name")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+              <label style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>
                 Account Type
                 <select value={editing.accountType} onChange={(e) => setEditing((s) => (s ? { ...s, accountType: e.target.value as "personal" | "merchant" } : s))} style={inputStyle}>
                   <option value="merchant">Merchant</option>
@@ -911,7 +911,7 @@ function PaymentMethodsPage() {
               {field("qrImageUrl", "Merchant QR Image URL", "https://...")}
             </div>
             <div style={{ display: "block" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>
                 <span>How It Works / Steps</span>
                 <button type="button" onClick={addStepLine} style={{ background: "none", border: "none", color: "var(--purple)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}><Plus size={13} style={{ verticalAlign: "-2px" }} /> Add step</button>
               </div>
@@ -945,7 +945,7 @@ function PaymentMethodsPage() {
               {field("minAmount", "Min Amount (BDT)", "10")}
               {field("maxAmount", "Max Amount (BDT)", "200000")}
               {field("processingFee", "Processing Fee", "0")}
-              <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>
+              <label style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>
                 Fee Type
                 <select value={editing.processingFeeType} onChange={(e) => setEditing((s) => (s ? { ...s, processingFeeType: e.target.value as "fixed" | "percentage" } : s))} style={inputStyle}>
                   <option value="percentage">Percentage (%)</option>
@@ -953,7 +953,7 @@ function PaymentMethodsPage() {
                 </select>
               </label>
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#cbd0dc", fontSize: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--label-color, #cbd0dc)", fontSize: 12 }}>
               <input type="checkbox" checked={editing.isActive} onChange={(e) => setEditing((s) => (s ? { ...s, isActive: e.target.checked } : s))} /> Active (visible on the invoice page)
             </label>
             <div style={{ display: "flex", gap: 10 }}>
@@ -2505,13 +2505,13 @@ function PaymentStatusPage() {
           <p>Enter your payment reference to check its current status.</p>
         </div>
         <form className="checkout-card" onSubmit={check} style={{ textAlign: "center" }}>
-          <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600, textAlign: "left", marginBottom: 8 }}>
+          <label style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600, textAlign: "left", marginBottom: 8 }}>
             Payment reference ID
             <input required type="text" placeholder="REQ-..." value={requestId} onChange={(e) => setRequestId(e.target.value)} style={{ display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "#0d1119", color: "var(--text)" }} />
           </label>
           {error && <div className="form-error">{error}</div>}
           {result && (
-            <div style={{ marginTop: 16, padding: 16, background: "#0d1119", borderRadius: 10, textAlign: "left" }}>
+            <div style={{ marginTop: 16, padding: 16, background: "var(--input-bg, #0d1119)", borderRadius: 10, textAlign: "left" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><span style={{ color: "var(--muted)", fontSize: 11 }}>Amount</span><strong style={{ display: "block" }}>৳ {result.request?.amount || result.amount}</strong></div>
                 <div><span style={{ color: "var(--muted)", fontSize: 11 }}>Status</span><Status>{result.request?.status || result.status}</Status></div>
@@ -2579,16 +2579,16 @@ function useSettings(group: string) {
   return { data, loading, saving, toast, update, save };
 }
 
-const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "#0d1119", color: "var(--text)" } as const;
+const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "var(--input-bg, #0d1119)", color: "var(--text)" } as const;
 
 function SettingsField({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: "block", color: "#cbd0dc", fontSize: 12, fontWeight: 600 }}>{label}{children}</label>;
+  return <label style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>{label}{children}</label>;
 }
 
 function SettingsToggle({ label, description, checked, onChange }: { label: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <div><strong style={{ color: "#cbd0dc", fontSize: 12 }}>{label}</strong>{description && <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 2 }}>{description}</p>}</div>
+      <div><strong style={{ color: "var(--label-color, #cbd0dc)", fontSize: 12 }}>{label}</strong>{description && <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 2 }}>{description}</p>}</div>
       <button type="button" onClick={() => onChange(!checked)} style={{ width: 44, height: 24, borderRadius: 12, border: "none", background: checked ? "var(--purple)" : "#333", cursor: "pointer", position: "relative", transition: "background .2s" }}>
         <span style={{ position: "absolute", top: 2, left: checked ? 22 : 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
       </button>
@@ -3173,7 +3173,7 @@ function SmsTestingTab() {
             </SettingsSection>
           )}
           <SettingsSection title="Raw JSON Response">
-            <pre style={{ background: "#0a0a0f", padding: 16, borderRadius: 8, fontSize: 11, color: "#7dd3fc", overflow: "auto", maxHeight: 300, border: "1px solid var(--line)" }}>
+            <pre style={{ background: "var(--code-bg, #0a0a0f)", padding: 16, borderRadius: 8, fontSize: 11, color: "#7dd3fc", overflow: "auto", maxHeight: 300, border: "1px solid var(--line)" }}>
               {JSON.stringify(result, null, 2)}
             </pre>
           </SettingsSection>
@@ -3579,7 +3579,12 @@ function AdminSettings() {
 /* ────────── Admin Layout ────────── */
 function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [dark, setDark] = useState(true);
+  // Admin panel defaults to the light theme; the header toggle persists the
+  // choice so a reload keeps the admin's preferred appearance.
+  const [dark, setDark] = useState(() => localStorage.getItem("zi-pay-theme") === "dark");
+  useEffect(() => {
+    localStorage.setItem("zi-pay-theme", dark ? "dark" : "light");
+  }, [dark]);
 
   /* Hydrate user data from /api/auth/me on mount */
   useEffect(() => {

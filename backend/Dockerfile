@@ -32,7 +32,9 @@ COPY frontend/package.json ./frontend/package.json
 # Install production dependencies only (cached across builds).
 # yarn workspaces may place unhoistable packages inside the backend workspace,
 # so the directory is created to guarantee the runtime COPY has a source.
-RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+# The cache id is stage-specific with sharing=locked: the build stage also
+# mounts a yarn cache, and two stages writing one cache in parallel corrupts it.
+RUN --mount=type=cache,id=yarn-prod,target=/usr/local/share/.cache/yarn,sharing=locked \
     yarn install --frozen-lockfile --non-interactive --production \
       --network-timeout 600000 \
   && mkdir -p /app/backend/node_modules
@@ -53,7 +55,7 @@ COPY backend/package.json ./backend/package.json
 COPY frontend/package.json ./frontend/package.json
 
 # Install all dependencies including dev deps (cached across builds)
-RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+RUN --mount=type=cache,id=yarn-build,target=/usr/local/share/.cache/yarn,sharing=locked \
     yarn install --frozen-lockfile --non-interactive \
       --network-timeout 600000
 

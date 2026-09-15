@@ -40,8 +40,10 @@ COPY package.json yarn.lock ./
 COPY frontend/package.json ./frontend/package.json
 COPY backend/package.json ./backend/package.json
 
-# Install dependencies (cached across builds)
-RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+# Install dependencies (cached across builds).
+# The cache id is unique to this image with sharing=locked: the backend image
+# installs in parallel, and two builds writing one cache dir corrupts it.
+RUN --mount=type=cache,id=yarn-frontend,target=/usr/local/share/.cache/yarn,sharing=locked \
     yarn install --frozen-lockfile --non-interactive \
       --network-timeout 600000
 

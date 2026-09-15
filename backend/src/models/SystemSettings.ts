@@ -14,7 +14,6 @@ const systemSettingsSchema = new Schema<ISystemSettings>(
     key: {
       type: String,
       required: true,
-      unique: true,
       index: true,
     },
     group: {
@@ -33,6 +32,12 @@ const systemSettingsSchema = new Schema<ISystemSettings>(
   },
   { timestamps: true }
 );
+
+// Uniqueness is per (group, key) — NOT per key alone.
+// Every settings group stores its payload under key "config", so a unique index
+// on `key` by itself let only the first group save and every other group failed
+// with DUPLICATE_ENTRY (409).
+systemSettingsSchema.index({ group: 1, key: 1 }, { unique: true });
 
 export const SystemSettings = mongoose.model<ISystemSettings>('SystemSettings', systemSettingsSchema);
 

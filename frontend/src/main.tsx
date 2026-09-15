@@ -2544,19 +2544,57 @@ function useSettings(group: string) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
+  // True while the admin has unsaved edits. Used to protect local input from an
+  // incoming real-time update (another tab / another admin saving the same group).
+  const dirtyRef = useRef(false);
+
+  const load = (silent = false) => {
+    if (!silent) setLoading(true);
+    authFetch(`${API_URL}/api/admin/settings/${group}`)
+      .then((res) => res.json())
+      .then((d) => { if (d.success) { setData(d.data); dirtyRef.current = false; } })
+      .catch(() => {})
+      .finally(() => { if (!silent) setLoading(false); });
+  };
 
   useEffect(() => {
-    setLoading(true);
-    authFetch(`${API_URL}/api/admin/settings/${group}`, {
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((res) => res.json())
-      .then((d) => { if (d.success) setData(d.data); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    load();
+    // reload `load` changes identity per render; group changes re-trigger the fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group]);
 
-  const update = (key: string, value: any) => setData((s) => ({ ...s, [key]: value }));
+  /**
+   * Real-time settings sync.
+   *
+   * The backend emits `settings.updated` with { group, settings } after any
+   * successful PUT. This panel adopts the new values immediately so two open
+   * admin tabs never disagree. Unsaved local edits are preserved and the admin
+   * is told the value changed elsewhere.
+   */
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onSettingsUpdated = (payload: { group?: string; settings?: Record<string, unknown> }) => {
+      if (payload?.group !== group) return;
+      if (dirtyRef.current) {
+        setToast("This settings group changed in another session — reload to see the latest values.");
+        setTimeout(() => setToast(""), 5000);
+        return;
+      }
+      if (payload.settings) {
+        setData({ ...(payload.settings as Record<string, any>) });
+      }
+    };
+    socket.on("settings.updated", onSettingsUpdated);
+    return () => {
+      socket.off("settings.updated", onSettingsUpdated);
+    };
+  }, [group]);
+
+  const update = (key: string, value: any) => {
+    dirtyRef.current = true;
+    setData((s) => ({ ...s, [key]: value }));
+  };
 
   const save = async () => {
     setSaving(true);
@@ -2567,11 +2605,22 @@ function useSettings(group: string) {
         body: JSON.stringify(data),
       });
       const d = await res.json();
-      if (d.success) { setToast("Settings saved successfully"); setTimeout(() => setToast(""), 3000); }
-    } catch {} finally { setSaving(false); }
+      if (d.success) {
+        dirtyRef.current = false;
+        if (d.data) setData(d.data);
+        setToast("Settings saved successfully");
+        setTimeout(() => setToast(""), 3000);
+      } else {
+        setToast(d.error || "Could not save settings");
+        setTimeout(() => setToast(""), 4000);
+      }
+    } catch {
+      setToast("Network error — settings not saved");
+      setTimeout(() => setToast(""), 4000);
+    } finally { setSaving(false); }
   };
 
-  return { data, loading, saving, toast, update, save };
+  return { data, loading, saving, toast, update, save, reload: load };
 }
 
 const inputStyle = { display: "block", width: "100%", marginTop: 7, padding: "12px 13px", border: "1px solid var(--line)", borderRadius: 9, background: "var(--input-bg, #0d1119)", color: "var(--text)" } as const;

@@ -121,6 +121,19 @@ export function emitSettingsUpdated(settings: unknown) {
 }
 
 /**
+ * Broadcast an admin system-settings group (general/gateway/security/sms/...).
+ *
+ * Distinct from `emitSettingsUpdated`, which carries the public pay-settings
+ * payload on `pay-settings.updated`. Admin panels listen on `settings.updated`
+ * with a { group, settings } payload so each panel only adopts its own group.
+ */
+export function emitAdminSettingsUpdated(payload: { group: string; settings: Record<string, unknown> }) {
+  const socketIO = getIO();
+  socketIO.to('role:super_admin').emit('settings.updated', payload);
+  socketIO.to('role:admin').emit('settings.updated', payload);
+}
+
+/**
  * Broadcast the active payment-provider list to every connected client.
  *
  * Emitted after any admin create/update/delete/reorder of a payment method so

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Copy, Clock, CreditCard, ExternalLink, FileText, Globe, Info, KeyRound, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Code2, Copy, Clock, CreditCard, ExternalLink, FileText, Fingerprint, Globe, Info, KeyRound, Layers, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { io, type Socket } from "socket.io-client";
@@ -1044,6 +1044,21 @@ function AdminLogin() {
 }
 
 /* ────────── Landing page ────────── */
+const LANDING_FEATURES = [
+  { icon: Zap, tone: "green", title: "Instant Settlements", body: "Payments are verified and settled in real time via SMS monitoring — no waiting for batch processing." },
+  { icon: Layers, tone: "blue", title: "Zero Downtime", body: "Multi-device failover keeps your gateway online even when individual devices drop off the network." },
+  { icon: ShieldCheck, tone: "purple", title: "Bank-Grade Security", body: "Encrypted transactions with device attestation, API key rotation, and signed webhook verification." },
+  { icon: BarChart3, tone: "orange", title: "Live Analytics", body: "Track volume, success rate, and provider performance from a single real-time dashboard." },
+  { icon: Code2, tone: "purple", title: "One Simple API", body: "A single REST endpoint and webhook to integrate bKash, Nagad, and Rocket at once." },
+  { icon: Fingerprint, tone: "green", title: "Device Attestation", body: "Every SMS listener is cryptographically bound to a verified merchant device." },
+];
+
+const LANDING_STEPS = [
+  { n: "01", title: "Create an account", body: "Sign in with Google and open your merchant workspace in seconds." },
+  { n: "02", title: "Connect a device", body: "Install the companion app so incoming wallet SMS are captured securely." },
+  { n: "03", title: "Go live", body: "Drop in your API key, add a webhook, and start accepting payments." },
+];
+
 function Landing() {
   return (
     <div className="landing-page">
@@ -1051,22 +1066,25 @@ function Landing() {
       <div className="landing-bg-glow landing-bg-glow-1" />
       <div className="landing-bg-glow landing-bg-glow-2" />
       <div className="landing-bg-glow landing-bg-glow-3" />
+      <div className="landing-grid-overlay" />
 
       {/* Nav */}
       <nav className="landing-nav">
         <Brand />
+        <div className="landing-nav-links">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="/admin/login" className="outline-btn landing-nav-cta">
+            Merchant login <ArrowRight size={15} />
+          </a>
+        </div>
       </nav>
 
       {/* Intro header */}
       <section className="landing-intro">
-        <span className="landing-kicker">Payment Gateway</span>
-        <h1>Accept payments<br /><span className="gradient-text">any wallet</span></h1>
-        <p>Integrate bKash, Nagad, and Rocket into your business with a single, secure API. Built for Bangladesh.</p>
-        <div className="landing-intro-actions">
-          <a href="/admin/login" className="outline-btn" style={{ textDecoration: "none", padding: "14px 28px", fontSize: 14 }}>
-            Merchant login
-          </a>
-        </div>
+        <span className="landing-kicker"><Sparkles size={13} /> Payment Gateway</span>
+        <h1>Accept payments<br />from <span className="gradient-text">any wallet</span></h1>
+        <p>Integrate bKash, Nagad, and Rocket into your business with a single, secure API. Built for Bangladesh, ready in minutes.</p>
         <div className="provider-badges">
           <span className="provider-badge bkash"><span className="badge-dot" /> bKash</span>
           <span className="provider-badge nagad"><span className="badge-dot" /> Nagad</span>
@@ -1074,40 +1092,63 @@ function Landing() {
         </div>
       </section>
 
+      {/* Stats strip */}
+      <section className="landing-stats">
+        <div className="landing-stat"><strong>3+</strong><span>Wallet providers</span></div>
+        <div className="landing-stat"><strong>&lt;5s</strong><span>Auto verification</span></div>
+        <div className="landing-stat"><strong>24/7</strong><span>SMS monitoring</span></div>
+        <div className="landing-stat"><strong>0৳</strong><span>Setup fees</span></div>
+      </section>
+
       {/* Features */}
-      <section className="landing-features">
-        <div className="feature-card" style={{ animationDelay: "0.1s" }}>
-          <div className="feature-icon green"><Zap size={22} /></div>
-          <h3>Instant Settlements</h3>
-          <p>Payments are verified and settled in real time via SMS monitoring. No waiting for batch processing.</p>
+      <section className="landing-features" id="features">
+        <div className="landing-section-head">
+          <span className="landing-kicker">Why ZI Pay</span>
+          <h2>Everything you need to get paid</h2>
+          <p>A complete payment stack designed for merchants who move fast.</p>
         </div>
-        <div className="feature-card" style={{ animationDelay: "0.2s" }}>
-          <div className="feature-icon blue"><Globe size={22} /></div>
-          <h3>Zero Downtime</h3>
-          <p>Multi-device failover ensures your payment gateway stays online even when individual devices go offline.</p>
+        <div className="landing-feature-grid">
+          {LANDING_FEATURES.map((f, i) => (
+            <div className="feature-card" key={f.title} style={{ animationDelay: `${0.06 * i}s` }}>
+              <div className={`feature-icon ${f.tone}`}><f.icon size={22} /></div>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </div>
+          ))}
         </div>
-        <div className="feature-card" style={{ animationDelay: "0.3s" }}>
-          <div className="feature-icon purple"><Shield size={22} /></div>
-          <h3>Bank-Grade Security</h3>
-          <p>End-to-end encrypted transactions with device attestation, API key rotation, and webhook verification.</p>
+      </section>
+
+      {/* How it works */}
+      <section className="landing-steps" id="how">
+        <div className="landing-section-head">
+          <span className="landing-kicker">How it works</span>
+          <h2>Live in three steps</h2>
+        </div>
+        <div className="landing-step-grid">
+          {LANDING_STEPS.map((s, i) => (
+            <div className="step-card" key={s.n} style={{ animationDelay: `${0.1 * i}s` }}>
+              <span className="step-num">{s.n}</span>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* CTA */}
       <section className="landing-cta-section">
         <div className="landing-cta-card">
+          <span className="landing-cta-icon"><Sparkles size={20} /></span>
           <h2>Start accepting payments today</h2>
           <p>No setup fees. Go live in minutes with our simple API integration.</p>
-          <a href="/payment" className="primary-btn" style={{ textDecoration: "none", padding: "14px 32px", fontSize: 14 }}>
-            Pay now <ArrowUpRight size={16} />
-          </a>
           <p className="landing-cta-fine">No setup fees &middot; Go live in minutes</p>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="landing-footer">
-        Powered by ZI Pay Payment Gateway
+        <Brand />
+        <p>Powered by ZI Pay Payment Gateway</p>
       </footer>
     </div>
   );
@@ -1165,6 +1206,21 @@ function providerLabel(p: string) {
   if (p === "bkash") return "bKash";
   if (p === "upay") return "Upay";
   return p ? p[0].toUpperCase() + p.slice(1) : "Provider";
+}
+
+/** Normalize a Bangladeshi mobile number to E.164 form (+8801XXXXXXXXX). */
+function normalizeBdPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("880")) return "+" + digits.slice(0, 13);
+  if (digits.startsWith("0")) return "+880" + digits.slice(1, 11);
+  if (digits.startsWith("1")) return "+880" + digits.slice(0, 10);
+  return "+" + digits.slice(0, 13);
+}
+
+/** True when the value is a complete, valid BD mobile number (E.164). */
+function isValidBdPhone(value: string): boolean {
+  return /^\+8801[3-9]\d{8}$/.test(value);
 }
 
 /** Find a provider config by code; falls back to built-in defaults. */
@@ -1435,6 +1491,7 @@ function InvoicePayment() {
   const [provider, setProvider] = useState<string>("bkash");
   const [trxId, setTrxId] = useState("");
   const [payerNumber, setPayerNumber] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [formStep, setFormStep] = useState<"phone" | "trx">("phone");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -1992,21 +2049,32 @@ function InvoicePayment() {
 
             {/* Step 1 — Phone number (hidden for QR providers) */}
             {!isQrProvider && formStep === "phone" && (
-              <div className="bk-bignum-wrap">
-                <input
-                  className="bk-bignum"
-                  type="tel"
-                  placeholder="01XXXXXXXXX"
-                  value={payerNumber}
-                  onChange={(e) => {
-                    let v = e.target.value.replace(/[^+\d]/g, "");
-                    if (v.startsWith("01")) v = "+880" + v.slice(1);
-                    if (v.length > 14) v = v.slice(0, 14);
-                    setPayerNumber(v);
-                  }}
-                  required
-                />
-              </div>
+              <>
+                <div className="bk-bignum-wrap">
+                  <input
+                    className="bk-bignum"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="01XXXXXXXXX"
+                    value={payerNumber}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      setPayerNumber(digits);
+                      if (phoneError) setPhoneError("");
+                    }}
+                    onBlur={() => {
+                      if (!payerNumber) return;
+                      const normalized = normalizeBdPhone(payerNumber);
+                      setPayerNumber(normalized);
+                      setPhoneError(isValidBdPhone(normalized) ? "" : "Enter a valid Bangladeshi mobile number (e.g. 01XXXXXXXXX)");
+                    }}
+                    required
+                  />
+                </div>
+                {phoneError && (
+                  <p className="bk-pay-hint" style={{ color: "#fff", fontWeight: 600 }}>{phoneError}</p>
+                )}
+              </>
             )}
 
             {/* Step 2 — TRX ID (always shown; the only field for QR providers) */}
@@ -2017,7 +2085,10 @@ function InvoicePayment() {
                   type="text"
                   placeholder="A7D8K3P91"
                   value={trxId}
-                  onChange={(e) => setTrxId(e.target.value)}
+                  onChange={(e) => setTrxId(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required
                 />
               </div>

@@ -227,6 +227,17 @@
   flex-shrink: 0;
   box-shadow: 0 0 10px currentColor;
 }
+/* Admin-uploaded provider logo (Cloudinary). Kept round + object-fit:contain
+   so wide payment-brand artwork is never cropped or stretched. */
+.provider-badge .badge-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 2px;
+  flex-shrink: 0;
+}
 .provider-badge.bkash .badge-dot { background: #d9417c; color: #d9417c; }
 .provider-badge.nagad .badge-dot { background: #e87938; color: #e87938; }
 .provider-badge.rocket .badge-dot { background: #7746ac; color: #7746ac; }

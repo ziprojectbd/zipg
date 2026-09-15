@@ -49,6 +49,11 @@ export function initializeSocket(httpServer: HttpServer): Server {
     if (user) {
       socket.join(`user:${user.sub}`);
       socket.join(`role:${user.role}`);
+      // Admins/operators also join the public room: their dashboards render the
+      // same public surfaces (landing badges, checkout, invoice) as anonymous
+      // visitors, so they must receive `providers.updated` / `pay-settings.updated`
+      // instead of relying on a manual refresh.
+      socket.join('public');
     }
 
     // Join anonymous to public room

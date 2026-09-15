@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Code2, Copy, Clock, CreditCard, ExternalLink, FileText, Fingerprint, Globe, Info, KeyRound, Layers, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
@@ -603,15 +603,48 @@ function PaymentMethodsPage() {
   const [notice, setNotice] = useState("");
   const [step, setStep] = useState<"list" | "edit" | "qr">("list");
 
-  const reload = () => {
-    setLoading(true);
+  const reload = (silent = false) => {
+    if (!silent) setLoading(true);
     fetch(`${API_URL}/api/admin/payment-methods`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((res) => res.json())
       .then((data) => { if (data.success && data.data?.methods) setMethods(data.data.methods); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   };
-  useEffect(reload, []);
+  useEffect(() => { reload(); }, []);
+
+  /**
+   * Real-time sync for the admin list.
+   *
+   * The backend broadcasts `providers.updated` after any payment-method write.
+   * Two cases matter:
+   *   - Another admin (or another tab) changed providers → refresh this list.
+   *   - This tab made the change → `saveMethod`/`remove` already reload, so the
+   *     refetch is harmless and keeps both views identical.
+   * While the edit form is open the list is NOT replaced, so an incoming
+   * broadcast can never discard in-progress form input.
+   */
+  const editingRef = useRef(false);
+  useEffect(() => {
+    editingRef.current = step !== "list";
+  }, [step]);
+
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onProvidersUpdated = () => {
+      if (editingRef.current) {
+        setNotice("Payment methods changed in another session. Close the editor to see the latest list.");
+        return;
+      }
+      reload(true);
+    };
+    socket.on("providers.updated", onProvidersUpdated);
+    return () => {
+      socket.off("providers.updated", onProvidersUpdated);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const apiCall = async (path: string, init?: RequestInit) => {
     const res = await fetch(`${API_URL}${path}`, {
@@ -1124,10 +1157,17 @@ function Landing() {
         <div className="provider-badges">
           {providers.map((p) => {
             const color = p.color || FALLBACK_PROVIDER_THEME[p.code]?.color || "#8b5cf6";
+            const label = p.displayName || providerLabel(p.code);
             return (
               <span className="provider-badge" key={p.code}>
-                <span className="badge-dot" style={{ background: color, color }} />
-                {p.displayName || providerLabel(p.code)}
+                {/* Admin-uploaded provider logo (Cloudinary). Falls back to the
+                    brand-coloured dot when no logo is configured. */}
+                {p.icon ? (
+                  <img className="badge-logo" src={p.icon} alt={label} loading="lazy" />
+                ) : (
+                  <span className="badge-dot" style={{ background: color, color }} />
+                )}
+                {label}
               </span>
             );
           })}

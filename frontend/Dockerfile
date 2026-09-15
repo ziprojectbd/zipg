@@ -6,10 +6,15 @@
 #
 # Build args: Vite build-time variables (VITE_*) must be provided during build.
 # Runtime: No env vars needed — all VITE_* are baked into the bundle.
+#
+# Performance: the yarn cache is mounted as a BuildKit cache so repeat
+# deploys skip re-downloading the whole dependency tree.
 ###############################################################################
 
+ARG NODE_VERSION=22-alpine
+
 ############################## BUILD STAGE ####################################
-FROM node:22-alpine AS build
+FROM node:${NODE_VERSION} AS build
 
 RUN corepack enable && corepack prepare yarn@1.22.22 --activate
 
@@ -35,8 +40,10 @@ COPY package.json yarn.lock ./
 COPY frontend/package.json ./frontend/package.json
 COPY backend/package.json ./backend/package.json
 
-# Install dependencies
-RUN yarn install --frozen-lockfile --non-interactive
+# Install dependencies (cached across builds)
+RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+    yarn install --frozen-lockfile --non-interactive \
+      --network-timeout 600000
 
 # Copy frontend source
 COPY frontend ./frontend

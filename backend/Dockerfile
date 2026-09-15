@@ -7,10 +7,38 @@
 # Yarn (classic v1) workspaces: the root yarn.lock locks the whole monorepo,
 # so `COPY package.json yarn.lock` is enough for a reproducible install.
 # yarn install is faster and far lighter on CPU/RAM than npm install.
+#
+# Performance: the yarn cache is mounted as a BuildKit cache, and production
+# dependencies are installed in their own stage so the runtime image never
+# runs a second full install.
 ###############################################################################
 
+ARG NODE_VERSION=22-alpine
+
+######################## PRODUCTION DEPENDENCIES ##############################
+FROM node:${NODE_VERSION} AS prod-deps
+
+RUN corepack enable && corepack prepare yarn@1.22.22 --activate
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy workspace manifests for proper yarn workspace resolution
+COPY package.json yarn.lock ./
+COPY backend/package.json ./backend/package.json
+COPY frontend/package.json ./frontend/package.json
+
+# Install production dependencies only (cached across builds).
+# yarn workspaces may place unhoistable packages inside the backend workspace,
+# so the directory is created to guarantee the runtime COPY has a source.
+RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+    yarn install --frozen-lockfile --non-interactive --production \
+      --network-timeout 600000 \
+  && mkdir -p /app/backend/node_modules
+
 ############################## BUILD STAGE ####################################
-FROM node:22-alpine AS build
+FROM node:${NODE_VERSION} AS build
 
 RUN corepack enable && corepack prepare yarn@1.22.22 --activate
 
@@ -24,8 +52,10 @@ COPY package.json yarn.lock ./
 COPY backend/package.json ./backend/package.json
 COPY frontend/package.json ./frontend/package.json
 
-# Install all dependencies (including dev deps needed for tsc build)
-RUN yarn install --frozen-lockfile --non-interactive
+# Install all dependencies including dev deps (cached across builds)
+RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+    yarn install --frozen-lockfile --non-interactive \
+      --network-timeout 600000
 
 # Copy backend source
 COPY backend ./backend
@@ -34,7 +64,7 @@ COPY backend ./backend
 RUN yarn workspace zi-pay-backend build
 
 ############################### RUNTIME STAGE #################################
-FROM node:22-alpine AS runtime
+FROM node:${NODE_VERSION} AS runtime
 
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--enable-source-maps"
@@ -46,14 +76,11 @@ RUN apk add --no-cache tini tzdata \
 
 WORKDIR /app
 
-# Copy package manifests for production dependency install
-COPY package.json yarn.lock ./
-COPY backend/package.json ./backend/package.json
-COPY frontend/package.json ./frontend/package.json
-
-# Install production dependencies only (NODE_ENV=production makes yarn skip dev deps)
-RUN corepack enable && corepack prepare yarn@1.22.22 --activate \
-  && yarn install --frozen-lockfile --non-interactive
+# Production dependencies (already pruned — no second install at build time)
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/package.json ./package.json
+COPY --from=prod-deps /app/backend/package.json ./backend/package.json
+COPY --from=prod-deps /app/backend/node_modules ./backend/node_modules
 
 # Copy built application from build stage
 COPY --from=build /app/backend/dist ./backend/dist

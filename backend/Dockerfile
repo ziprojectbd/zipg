@@ -1,35 +1,37 @@
 # syntax=docker/dockerfile:1
 #
 # zi-pay Backend — Multi-stage build for Coolify
-# Build context: project root (needs pnpm-lock.yaml and workspace config)
+# Build context: project root (needs yarn.lock + root workspaces config)
 # Express.js API server running on port 5001
 #
-# pnpm is pinned via packageManager: "pnpm@<version>" in package.json.
-# corepack reads that field so all environments use the SAME pnpm version.
+# Yarn (classic v1) workspaces: the root yarn.lock locks the whole monorepo,
+# so `COPY package.json yarn.lock` is enough for a reproducible install.
+# yarn install is faster and far lighter on CPU/RAM than npm install.
 ###############################################################################
 
 ############################## BUILD STAGE ####################################
 FROM node:22-alpine AS build
 
-RUN corepack enable
+RUN corepack enable && corepack prepare yarn@1.22.22 --activate
 
 WORKDIR /app
 
 # Give tsc build headroom
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Copy workspace manifests for proper pnpm workspace resolution
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy workspace manifests for proper yarn workspace resolution
+COPY package.json yarn.lock ./
 COPY backend/package.json ./backend/package.json
+COPY frontend/package.json ./frontend/package.json
 
 # Install all dependencies (including dev deps needed for tsc build)
-RUN pnpm install --frozen-lockfile
+RUN yarn install --frozen-lockfile --non-interactive
 
 # Copy backend source
 COPY backend ./backend
 
 # Build TypeScript -> dist/
-RUN pnpm --dir backend build
+RUN yarn workspace zi-pay-backend build
 
 ############################### RUNTIME STAGE #################################
 FROM node:22-alpine AS runtime
@@ -45,11 +47,13 @@ RUN apk add --no-cache tini tzdata \
 WORKDIR /app
 
 # Copy package manifests for production dependency install
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json yarn.lock ./
 COPY backend/package.json ./backend/package.json
+COPY frontend/package.json ./frontend/package.json
 
-# Install production dependencies only
-RUN corepack enable && pnpm install --frozen-lockfile --prod
+# Install production dependencies only (NODE_ENV=production makes yarn skip dev deps)
+RUN corepack enable && corepack prepare yarn@1.22.22 --activate \
+  && yarn install --frozen-lockfile --non-interactive
 
 # Copy built application from build stage
 COPY --from=build /app/backend/dist ./backend/dist

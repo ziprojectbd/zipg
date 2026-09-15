@@ -3,15 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.4",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "concurrently -n frontend,backend -c cyan,magenta \"pnpm --dir frontend dev\" \"pnpm --dir backend dev\"",
-    "build": "pnpm --dir frontend build && pnpm --dir backend build",
-    "build:frontend": "pnpm --dir frontend build",
-    "build:backend": "pnpm --dir backend build",
-    "lint": "pnpm --dir frontend lint && pnpm --dir backend lint",
-    "typecheck": "pnpm --dir frontend typecheck && pnpm --dir backend typecheck",
-    "start": "pnpm --dir backend start"
+    "dev": "concurrently -n frontend,backend -c cyan,magenta \"yarn workspace zi-pay-frontend dev\" \"yarn workspace zi-pay-backend dev\"",
+    "build": "yarn workspace zi-pay-frontend build && yarn workspace zi-pay-backend build",
+    "build:frontend": "yarn workspace zi-pay-frontend build",
+    "build:backend": "yarn workspace zi-pay-backend build",
+    "lint": "yarn workspace zi-pay-frontend lint && yarn workspace zi-pay-backend lint",
+    "typecheck": "yarn workspace zi-pay-frontend typecheck && yarn workspace zi-pay-backend typecheck",
+    "start": "yarn workspace zi-pay-backend start"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # zi-pay Frontend — Multi-stage build for Coolify
-# Build context: project root (needs pnpm-lock.yaml and workspace config)
+# Build context: project root (needs yarn.lock + root workspaces config)
 # Serves the Vite + React SPA via nginx on port 80
 #
 # Build args: Vite build-time variables (VITE_*) must be provided during build.
@@ -11,7 +11,7 @@
 ############################## BUILD STAGE ####################################
 FROM node:22-alpine AS build
 
-RUN corepack enable
+RUN corepack enable && corepack prepare yarn@1.22.22 --activate
 
 WORKDIR /app
 
@@ -30,18 +30,19 @@ ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 ENV VITE_MAIN_SITE_URL=$VITE_MAIN_SITE_URL
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
-# Copy workspace manifests for proper pnpm workspace resolution
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy workspace manifests for proper yarn workspace resolution
+COPY package.json yarn.lock ./
 COPY frontend/package.json ./frontend/package.json
+COPY backend/package.json ./backend/package.json
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN yarn install --frozen-lockfile --non-interactive
 
 # Copy frontend source
 COPY frontend ./frontend
 
 # Build the production bundle
-RUN pnpm --dir frontend build
+RUN yarn workspace zi-pay-frontend build
 
 ############################### RUNTIME STAGE #################################
 FROM nginx:1.27-alpine AS runtime

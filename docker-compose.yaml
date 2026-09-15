@@ -19,7 +19,7 @@
 # Coolify resolves the compose file by its configured path only.
 #
 # SSL is handled by Coolify's reverse proxy (Traefik/Caddy) automatically.
-# Build contexts point at the monorepo root (pnpm workspace lockfile lives there).
+# Build contexts point at the monorepo root (yarn workspace lockfile lives there).
 ##############################################################################
 
 services:

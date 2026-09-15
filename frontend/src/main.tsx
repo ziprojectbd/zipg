@@ -241,11 +241,6 @@ function Sidebar({ collapsed, close }: { collapsed: boolean; close?: () => void 
         <Brand />
         <button className="icon-btn mobile-close" onClick={close}><X size={18} /></button>
       </div>
-      <div className="workspace">
-        <div className="workspace-avatar">{initials[0]}</div>
-        <div><strong>ZI Pay</strong><small>Business workspace</small></div>
-        <ChevronDown size={15} />
-      </div>
       <nav className="nav">
         {adminNav.map(({ label, to, icon: I }) => (
           <NavLink key={to} to={to} end={to === "/admin/dashboard"} onClick={close} className={({ isActive }) => isActive ? "active" : ""}>

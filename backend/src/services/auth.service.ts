@@ -177,8 +177,10 @@ export async function getCurrentUser(userId: string) {
 function generateTokens(userId: string, email: string, role: string, name: string): TokenPair {
   const payload = { sub: userId, email, role, name };
 
+  // Lifetimes come from config so JWT_ACCESS_EXPIRY / JWT_REFRESH_EXPIRY
+  // env vars actually apply (previously hardcoded to 24h/7d).
   const accessToken = jwt.sign(payload, appConfig.jwt.secret, {
-    expiresIn: 86400, // 24h in seconds
+    expiresIn: appConfig.jwt.accessTokenExpiry as jwt.SignOptions['expiresIn'],
     issuer: appConfig.jwt.issuer,
   } as jwt.SignOptions);
 
@@ -186,7 +188,7 @@ function generateTokens(userId: string, email: string, role: string, name: strin
     { sub: userId, type: 'refresh' },
     appConfig.jwt.secret,
     {
-      expiresIn: 604800, // 7d in seconds
+      expiresIn: appConfig.jwt.refreshTokenExpiry as jwt.SignOptions['expiresIn'],
       issuer: appConfig.jwt.issuer,
     } as jwt.SignOptions
   );

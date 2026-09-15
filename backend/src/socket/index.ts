@@ -115,6 +115,21 @@ export function emitSettingsUpdated(settings: unknown) {
   socketIO.to('role:admin').emit('pay-settings.updated', settings);
 }
 
+/**
+ * Broadcast the active payment-provider list to every connected client.
+ *
+ * Emitted after any admin create/update/delete/reorder of a payment method so
+ * public pages (landing hero badges, checkout, invoice) re-render without a
+ * page reload. The payload is the same shape as GET /api/public/providers.
+ */
+export function emitProvidersUpdated(data: unknown) {
+  const socketIO = getIO();
+  socketIO.to('public').emit('providers.updated', data);
+  socketIO.to('role:super_admin').emit('providers.updated', data);
+  socketIO.to('role:admin').emit('providers.updated', data);
+  socketIO.to('role:operator').emit('providers.updated', data);
+}
+
 export function emitSmsTransaction(data: unknown) {
   const socketIO = getIO();
   socketIO.to('role:super_admin').emit('sms.transaction', data);

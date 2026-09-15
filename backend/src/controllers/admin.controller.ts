@@ -11,6 +11,7 @@ import * as systemHealthService from '../services/systemHealth.service.js';
 import * as notificationService from '../services/notification.service.js';
 import * as paymentService from '../services/payment.service.js';
 import { cacheGet, cacheSet, cacheDel } from '../services/cache.service.js';
+import { emitProvidersUpdated } from '../socket/index.js';
 import { Transaction, PaymentRequest, PaymentMethod } from '../models/index.js';
 
 const PUBLIC_PROVIDERS_CACHE_KEY = 'public_providers';
@@ -18,6 +19,28 @@ const PUBLIC_PROVIDERS_CACHE_KEY = 'public_providers';
 /** Invalidate the public provider-config cache after any payment-method change. */
 function invalidatePublicProvidersCache(): void {
   cacheDel(PUBLIC_PROVIDERS_CACHE_KEY);
+}
+
+/**
+ * Invalidate the cache AND push the fresh active-provider list over Socket.IO.
+ *
+ * Public pages (landing hero badges, checkout, invoice) subscribe to
+ * `providers.updated`, so an admin change is reflected without a page reload.
+ * The emitted payload mirrors GET /api/public/providers.
+ */
+async function publishPublicProviders(): Promise<void> {
+  invalidatePublicProvidersCache();
+  try {
+    const methods = await PaymentMethod.find({ isActive: true })
+      .sort({ sortOrder: 1 })
+      .select(PUBLIC_METHOD_PROJECTION)
+      .lean();
+    cacheSet(PUBLIC_PROVIDERS_CACHE_KEY, methods, 60);
+    emitProvidersUpdated({ methods });
+  } catch {
+    // Broadcasting is best-effort: a socket failure must never fail the
+    // admin write that already succeeded.
+  }
 }
 
 /* ────────── Users ────────── */
@@ -237,7 +260,7 @@ export async function createPaymentMethodController(req: Request, res: Response,
       severity: 'info',
       metadata: { code: method.code, displayName: method.displayName },
     });
-    invalidatePublicProvidersCache();
+    await publishPublicProviders();
 
     res.status(201).json({ success: true, data: method });
   } catch (error) { next(error); }
@@ -265,7 +288,7 @@ export async function updatePaymentMethodController(req: Request, res: Response,
       severity: 'info',
       metadata: { code, changed: req.body },
     });
-    invalidatePublicProvidersCache();
+    await publishPublicProviders();
 
     res.json({ success: true, data: method });
   } catch (error) { next(error); }
@@ -305,7 +328,7 @@ export async function deletePaymentMethodController(req: Request, res: Response,
       severity: 'warning',
       metadata: { code },
     });
-    invalidatePublicProvidersCache();
+    await publishPublicProviders();
 
     res.json({ success: true, data: { deleted: code } });
   } catch (error) { next(error); }
@@ -333,7 +356,7 @@ export async function reorderPaymentMethodsController(req: Request, res: Respons
       severity: 'info',
       metadata: { order: codes },
     });
-    invalidatePublicProvidersCache();
+    await publishPublicProviders();
 
     const methods = await PaymentMethod.find().sort({ sortOrder: 1 }).lean();
     res.json({ success: true, data: { methods } });

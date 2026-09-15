@@ -231,6 +231,18 @@
 .provider-badge.nagad .badge-dot { background: #e87938; color: #e87938; }
 .provider-badge.rocket .badge-dot { background: #7746ac; color: #7746ac; }
 
+/* Placeholder shown while the DB-driven provider list is still loading. */
+.provider-badge-empty {
+  color: var(--muted);
+  font-weight: 500;
+  animation: none;
+}
+.provider-badge-empty:hover {
+  transform: none;
+  border-color: var(--line);
+  box-shadow: none;
+}
+
 /* ── Stats strip ── */
 .landing-stats {
   position: relative;

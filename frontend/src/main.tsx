@@ -1060,6 +1060,42 @@ const LANDING_STEPS = [
 ];
 
 function Landing() {
+  // Provider badges are DB-driven: admin add/edit/delete/reorder on
+  // /admin/payment-methods is reflected here, and `providers.updated` pushes
+  // changes live without a page refresh.
+  const [providers, setProviders] = useState<ProviderConfig[]>([]);
+  const [providersLoaded, setProvidersLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/public/providers`)
+      .then((res) => res.json())
+      .then((json) => {
+        const list = Array.isArray(json?.data?.methods) ? json.data.methods : [];
+        setProviders(list);
+      })
+      .catch(() => {})
+      .finally(() => setProvidersLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onProvidersUpdated = (payload: { methods?: ProviderConfig[] }) => {
+      setProviders(Array.isArray(payload?.methods) ? payload.methods : []);
+      setProvidersLoaded(true);
+    };
+    socket.on("providers.updated", onProvidersUpdated);
+    return () => {
+      socket.off("providers.updated", onProvidersUpdated);
+    };
+  }, []);
+
+  // Live hero copy so the headline never advertises a wallet we cannot accept.
+  const providerNames = providers.map((p) => p.displayName || providerLabel(p.code));
+  const heroProviderLine = providerNames.length > 0
+    ? `Integrate ${providerNames.slice(0, -1).join(", ")}${providerNames.length > 1 ? " and " : ""}${providerNames.slice(-1)[0]} into your business with a single, secure API. Built for Bangladesh, ready in minutes.`
+    : "Integrate mobile wallet payments into your business with a single, secure API. Built for Bangladesh, ready in minutes.";
+
   return (
     <div className="landing-page">
       {/* Background glow blobs */}
@@ -1084,17 +1120,31 @@ function Landing() {
       <section className="landing-intro">
         <span className="landing-kicker"><Sparkles size={13} /> Payment Gateway</span>
         <h1>Accept payments<br />from <span className="gradient-text">any wallet</span></h1>
-        <p>Integrate bKash, Nagad, and Rocket into your business with a single, secure API. Built for Bangladesh, ready in minutes.</p>
+        <p>{heroProviderLine}</p>
         <div className="provider-badges">
-          <span className="provider-badge bkash"><span className="badge-dot" /> bKash</span>
-          <span className="provider-badge nagad"><span className="badge-dot" /> Nagad</span>
-          <span className="provider-badge rocket"><span className="badge-dot" /> Rocket</span>
+          {providers.map((p) => {
+            const color = p.color || FALLBACK_PROVIDER_THEME[p.code]?.color || "#8b5cf6";
+            return (
+              <span className="provider-badge" key={p.code}>
+                <span className="badge-dot" style={{ background: color, color }} />
+                {p.displayName || providerLabel(p.code)}
+              </span>
+            );
+          })}
+          {/* Only mention "no providers" once the list has actually loaded —
+              otherwise a slow network looks like a broken gateway. */}
+          {providersLoaded && providers.length === 0 && (
+            <span className="provider-badge provider-badge-empty">No payment providers enabled yet</span>
+          )}
         </div>
       </section>
 
       {/* Stats strip */}
       <section className="landing-stats">
-        <div className="landing-stat"><strong>3+</strong><span>Wallet providers</span></div>
+        <div className="landing-stat">
+          <strong>{providersLoaded ? (providers.length > 0 ? `${providers.length}+` : "—") : "…"}</strong>
+          <span>Wallet providers</span>
+        </div>
         <div className="landing-stat"><strong>&lt;5s</strong><span>Auto verification</span></div>
         <div className="landing-stat"><strong>24/7</strong><span>SMS monitoring</span></div>
         <div className="landing-stat"><strong>0৳</strong><span>Setup fees</span></div>
@@ -1315,6 +1365,22 @@ function Checkout() {
         if (list.length > 0) setProviders(list);
       })
       .catch(() => {});
+  }, []);
+
+  // Real-time provider updates — an admin add/edit/delete/reorder on
+  // /admin/payment-methods broadcasts `providers.updated`, so the open checkout
+  // re-renders its method list instantly without a page refresh.
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onProvidersUpdated = (payload: { methods?: ProviderConfig[] }) => {
+      const list = Array.isArray(payload?.methods) ? payload.methods : [];
+      setProviders(list);
+    };
+    socket.on("providers.updated", onProvidersUpdated);
+    return () => {
+      socket.off("providers.updated", onProvidersUpdated);
+    };
   }, []);
 
   // Resolve the server-authoritative amount + orderId from the session token.
@@ -1571,6 +1637,22 @@ function InvoicePayment() {
         if (list.length > 0) setProviders(list);
       })
       .catch(() => {});
+  }, []);
+
+  // Real-time provider updates (same contract as Checkout) — an admin change on
+  // /admin/payment-methods pushes `providers.updated` and this invoice page
+  // swaps in the new provider list without a refresh.
+  useEffect(() => {
+    const socket = getPaySocket();
+    if (!socket) return;
+    const onProvidersUpdated = (payload: { methods?: ProviderConfig[] }) => {
+      const list = Array.isArray(payload?.methods) ? payload.methods : [];
+      setProviders(list);
+    };
+    socket.on("providers.updated", onProvidersUpdated);
+    return () => {
+      socket.off("providers.updated", onProvidersUpdated);
+    };
   }, []);
 
   // ── Invoice data — secure token-gated flow / legacy requestId ──

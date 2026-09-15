@@ -135,6 +135,82 @@ function setUser(u: { name: string; email: string; role: string; avatar?: string
 function clearToken() { localStorage.removeItem("zi-pay-token"); localStorage.removeItem("zi-pay-refresh"); localStorage.removeItem("zi-pay-user"); }
 function isAuthenticated(): boolean { return !!getToken(); }
 
+/**
+ * Authenticated fetch with transparent access-token refresh.
+ *
+ * The admin pages call the API directly, and a JWT that expired (or was issued
+ * with a shorter lifetime) previously produced a bare 401 — the UI then showed
+ * an empty list instead of recovering. This wrapper retries the request once
+ * with a freshly minted access token.
+ *
+ * Behaviour:
+ *   - 401 → POST /api/auth/refresh-token with the stored refresh token, then
+ *     replay the original request with the new access token.
+ *   - The refresh token itself is dead → clear storage and bounce to the login
+ *     page (same contract as the axios interceptor in services/api.ts).
+ *   - Concurrent 401s share one refresh call, so a dashboard that fires several
+ *     requests at once does not burn the refresh token multiple times.
+ */
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem("zi-pay-refresh");
+  if (!refreshToken) return null;
+
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/refresh-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const token = json?.data?.accessToken;
+        if (!token) return null;
+        localStorage.setItem("zi-pay-token", token);
+        if (json?.data?.refreshToken) {
+          localStorage.setItem("zi-pay-refresh", json.data.refreshToken);
+        }
+        return token as string;
+      } catch {
+        return null;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+}
+
+async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const withAuth = (token: string | null): RequestInit => ({
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  let res = await fetch(input, withAuth(getToken()));
+
+  if (res.status === 401) {
+    const token = await refreshAccessToken();
+    if (token) {
+      res = await fetch(input, withAuth(token));
+    }
+    if (res.status === 401) {
+      clearToken();
+      if (!window.location.pathname.startsWith("/admin/login")) {
+        window.location.href = "/admin/login";
+      }
+    }
+  }
+
+  return res;
+}
+
 function AdminGuard({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated()) return <Navigate to="/admin/login" replace />;
   return <>{children}</>;
@@ -256,8 +332,8 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/dashboard/overview`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+    authFetch(`${API_URL}/api/admin/dashboard/overview`, {
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => { if (data.success) setOverview(data.data); })
@@ -342,7 +418,7 @@ function TransactionsPage() {
 
   useEffect(() => {
     fetch(`${API_URL}/api/payments/admin/payments`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => { if (data.success && data.data?.payments) setPayments(data.data.payments); })
@@ -388,8 +464,8 @@ function DevicesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/devices`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+    authFetch(`${API_URL}/api/admin/devices`, {
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => { if (data.success && data.data?.devices) setDevices(data.data.devices); })
@@ -436,8 +512,8 @@ function ApiKeysPage() {
   const [keys, setKeys] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/api-keys`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+    authFetch(`${API_URL}/api/admin/api-keys`, {
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => { if (data.success && data.data?.keys) setKeys(data.data.keys); })
@@ -483,7 +559,7 @@ function PaySettingsPage() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/settings/pay`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    authFetch(`${API_URL}/api/admin/settings/pay`)
       .then((res) => res.json())
       .then((data) => { if (data.success) setSettings(data.data); })
       .catch(() => {})
@@ -495,9 +571,9 @@ function PaySettingsPage() {
   const save = async () => {
     setSaving(true); setNotice("");
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/pay`, {
+      const res = await authFetch(`${API_URL}/api/admin/settings/pay`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
       const data = await res.json().catch(() => ({}));
@@ -605,7 +681,7 @@ function PaymentMethodsPage() {
 
   const reload = (silent = false) => {
     if (!silent) setLoading(true);
-    fetch(`${API_URL}/api/admin/payment-methods`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    authFetch(`${API_URL}/api/admin/payment-methods`)
       .then((res) => res.json())
       .then((data) => { if (data.success && data.data?.methods) setMethods(data.data.methods); })
       .catch(() => {})
@@ -647,9 +723,10 @@ function PaymentMethodsPage() {
   }, []);
 
   const apiCall = async (path: string, init?: RequestInit) => {
-    const res = await fetch(`${API_URL}${path}`, {
+    // authFetch injects the bearer token and refreshes it on 401.
+    const res = await authFetch(`${API_URL}${path}`, {
       ...init,
-      headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json", ...(init?.headers || {}) },
+      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
@@ -2475,8 +2552,8 @@ function useSettings(group: string) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_URL}/api/admin/settings/${group}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+    authFetch(`${API_URL}/api/admin/settings/${group}`, {
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((d) => { if (d.success) setData(d.data); })
@@ -2489,9 +2566,9 @@ function useSettings(group: string) {
   const save = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/${group}`, {
+      const res = await authFetch(`${API_URL}/api/admin/settings/${group}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       const d = await res.json();
@@ -2915,7 +2992,7 @@ function SmsStorageTab() {
   if (loading) return <div style={{ padding: 40, color: "var(--muted)" }}>Loading...</div>;
   const doCleanup = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/sms/cleanup`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await authFetch(`${API_URL}/api/admin/settings/sms/cleanup`, { method: "POST" });
       const d = await res.json();
       setCleanupMsg(`Cleaned up ${d.data?.deleted || 0} old SMS records.`);
     } catch { setCleanupMsg("Cleanup failed."); }
@@ -2982,8 +3059,8 @@ function SmsLogsTab() {
 
   const fetchLogs = (p: number) => {
     setLoading(true);
-    fetch(`${API_URL}/api/admin/settings/sms/logs?page=${p}&limit=${limit}&search=${encodeURIComponent(search)}&type=${type}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+    authFetch(`${API_URL}/api/admin/settings/sms/logs?page=${p}&limit=${limit}&search=${encodeURIComponent(search)}&type=${type}`, {
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((d) => { if (d.success) { setLogs(d.data.logs); setTotal(d.data.total); setPage(p); } })
@@ -3045,8 +3122,8 @@ function SmsTestingTab() {
   const testSms = async () => {
     setTesting(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/sms/test`, {
-        method: "POST", headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+      const res = await authFetch(`${API_URL}/api/admin/settings/sms/test`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smsText, provider, deviceId }),
       });
       const d = await res.json();
@@ -3110,7 +3187,7 @@ function SmsStatsTab() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/settings/sms/stats`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    authFetch(`${API_URL}/api/admin/settings/sms/stats`)
       .then((res) => res.json())
       .then((d) => { if (d.success) setStats(d.data); })
       .catch(() => {})
@@ -3257,8 +3334,8 @@ function EmailSettings() {
   const testEmail = async () => {
     setTesting(true); setTestMsg("");
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/email/test`, {
-        method: "POST", headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+      const res = await authFetch(`${API_URL}/api/admin/settings/email/test`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: testTo }),
       });
       const d = await res.json();
@@ -3395,7 +3472,7 @@ function SystemStatusPage() {
   const [info, setInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/settings/system-info`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    authFetch(`${API_URL}/api/admin/settings/system-info`)
       .then((res) => res.json())
       .then((d) => { if (d.success) setInfo(d.data); })
       .catch(() => {})
@@ -3506,9 +3583,9 @@ function AdminLayout() {
 
   /* Hydrate user data from /api/auth/me on mount */
   useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!getToken()) return;
+    // authFetch keeps this working after the access token expires.
+    authFetch(`${API_URL}/api/auth/me`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
         if (data?.success && data?.data?.user) setUser(data.data.user);

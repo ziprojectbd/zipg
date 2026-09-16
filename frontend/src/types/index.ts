@@ -147,7 +147,6 @@ export interface PaySettings {
   merchantAccount?: string;
   invoiceHeading?: string;
   invoiceDescription?: string;
-  footerText?: string;
   supportEmail?: string;
   supportPhone?: string;
   pendingPaymentMessage?: string;

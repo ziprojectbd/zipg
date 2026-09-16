@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Code2, Copy, Clock, CreditCard, ExternalLink, FileText, Fingerprint, Globe, Info, KeyRound, Layers, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Sun, Users, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, CircleDollarSign, Code2, Copy, Clock, CreditCard, ExternalLink, FileText, Fingerprint, Globe, Hash, Info, KeyRound, Layers, LayoutDashboard, LifeBuoy, Lock, LogOut, Menu, Moon, MoreHorizontal, Palette, Phone, PhoneCall, Plus, QrCode, Search, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Store, Sun, Tag, UserRound, Users, Wallet, Webhook, Wifi, WifiOff, X, Zap, Activity, GripVertical } from "lucide-react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { io, type Socket } from "socket.io-client";
@@ -610,7 +610,6 @@ function PaySettingsPage() {
             <label style={labelStyle}>Logo URL <input type="text" placeholder="https://..." value={settings.logoUrl || ""} onChange={(e) => update("logoUrl", e.target.value)} style={inputStyle} /></label>
             <label style={labelStyle}>Favicon URL <input type="text" placeholder="https://..." value={settings.faviconUrl || ""} onChange={(e) => update("faviconUrl", e.target.value)} style={inputStyle} /></label>
           </div>
-          <label style={labelStyle}>Footer Text <input type="text" placeholder="Powered by..." value={settings.footerText || ""} onChange={(e) => update("footerText", e.target.value)} style={inputStyle} /></label>
           <label style={labelStyle}>Secured By Text <input type="text" placeholder="Secured by ZI Pay" value={settings.securedByText || ""} onChange={(e) => update("securedByText", e.target.value)} style={inputStyle} /></label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>Support Email <input type="email" value={settings.supportEmail || ""} onChange={(e) => update("supportEmail", e.target.value)} style={inputStyle} /></label>
@@ -631,6 +630,13 @@ function PaySettingsPage() {
           <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
             Merchant name, account type and account number are configured per provider in Payment Methods.
           </p>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, marginTop: 18 }}>
+        <h3 style={{ color: "var(--text)", fontSize: 14, marginBottom: 14 }}>Checkout Page</h3>
+        <div style={{ display: "grid", gap: 16 }}>
+          <label style={labelStyle}>Header Brand Name <input type="text" placeholder="ZiPAY GATEWAY" value={settings.checkoutBrandName || ""} onChange={(e) => update("checkoutBrandName", e.target.value)} style={inputStyle} /></label>
         </div>
       </div>
 
@@ -892,13 +898,29 @@ function PaymentMethodsPage() {
               {field("accountName", "Account Name", "Merchant name")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <label style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>
-                Account Type
-                <select value={editing.accountType} onChange={(e) => setEditing((s) => (s ? { ...s, accountType: e.target.value as "personal" | "merchant" } : s))} style={inputStyle}>
-                  <option value="merchant">Merchant</option>
-                  <option value="personal">Personal</option>
-                </select>
-              </label>
+              <div style={{ display: "block" }}>
+                <span style={{ display: "block", color: "var(--label-color, #cbd0dc)", fontSize: 12, fontWeight: 600 }}>Account Type</span>
+                <div className="type-toggle" role="radiogroup" aria-label="Account type" style={{ marginTop: 7 }}>
+                  {ACCOUNT_TYPES.map((t) => {
+                    const { label, hint, icon: TypeIcon } = accountTypeMeta(t);
+                    const selected = editing.accountType === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        title={hint}
+                        className={`type-option ${selected ? "is-active" : ""}`}
+                        onClick={() => setEditing((s) => (s ? { ...s, accountType: t } : s))}
+                      >
+                        <span className="type-option-icon"><TypeIcon size={16} /></span>
+                        <strong>{label}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               {field("color", "Theme Color (hex)", "#F37021")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1011,7 +1033,17 @@ function PaymentMethodsPage() {
                   </td>
                   <td><span className={`mini-provider ${m.code}`}>{m.code}</span></td>
                   <td>{m.displayName}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{m.accountNumber}{m.accountName ? <div style={{ color: "var(--muted)" }}>{m.accountName}</div> : null}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                    {m.accountNumber}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                      {(() => { const { label, icon: TypeIcon } = accountTypeMeta(m.accountType); return (
+                        <span className={`type-badge ${m.accountType === "personal" ? "personal" : "merchant"}`} title={`${label} account`}>
+                          <TypeIcon size={12} /> {label}
+                        </span>
+                      ); })()}
+                      {m.accountName ? <span style={{ color: "var(--muted)", fontFamily: "inherit" }}>{m.accountName}</span> : null}
+                    </div>
+                  </td>
                   <td>{m.qrImageUrl ? <a href={m.qrImageUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>View</a> : "—"}</td>
                   <td>{m.isActive ? <span style={{ color: "var(--green)" }}>Active</span> : <span style={{ color: "#e97389" }}>Disabled</span>}</td>
                   <td>{m.processingFee}{m.processingFeeType === "percentage" ? "%" : " BDT"}</td>
@@ -1370,6 +1402,49 @@ function providerLabel(p: string) {
   return p ? p[0].toUpperCase() + p.slice(1) : "Provider";
 }
 
+/** Icon + label for a provider account type (used in the admin picker and list). */
+function accountTypeMeta(type?: string) {
+  const personal = type === "personal";
+  return personal
+    ? { label: "Personal", hint: "Money is sent from a personal wallet", icon: UserRound }
+    : { label: "Merchant", hint: "Money is sent to a business account", icon: Store };
+}
+
+const ACCOUNT_TYPES = ["merchant", "personal"] as const;
+
+/**
+ * Strip a leading list marker ("1.", "1)", "1 -") from an admin-authored step.
+ * The "How it works" list already renders its own number badge, so a stored
+ * prefix would otherwise be shown twice ("1  1. Open your app").
+ * Only a marker that matches the step's own position is stripped, so a step
+ * like "2 payments allowed" keeps its text.
+ */
+function stripStepNumber(step: string, position: number): string {
+  const trimmed = step.trim();
+  const match = trimmed.match(/^(\d{1,2})\s*[.)\-:]\s+/);
+  if (match && Number(match[1]) === position) {
+    return trimmed.slice(match[0].length).trim();
+  }
+  return trimmed;
+}
+
+/**
+ * One row of the invoice summary card. The label carries a small colour-coded
+ * icon chip so each field is scannable at a glance; the value keeps its
+ * original styling.
+ */
+function InvoiceRow({ icon: RowIcon, label, value, tone = "slate" }: { icon: Icon; label: string; value: React.ReactNode; tone?: string }) {
+  return (
+    <div className="bk-invoice-row">
+      <span className="bk-invoice-label">
+        <span className={`bk-label-chip tone-${tone}`}><RowIcon size={12} /></span>
+        {label}
+      </span>
+      <span className="bk-invoice-value">{value}</span>
+    </div>
+  );
+}
+
 /** Normalize a Bangladeshi mobile number to E.164 form (+8801XXXXXXXXX). */
 function normalizeBdPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -1398,11 +1473,12 @@ type PaySettings = {
   logoUrl?: string; faviconUrl?: string;
   merchantName?: string; merchantAccount?: string;
   invoiceHeading?: string; invoiceDescription?: string;
-  footerText?: string; supportEmail?: string; supportPhone?: string;
+  supportEmail?: string; supportPhone?: string;
   pendingPaymentMessage?: string; pendingVerificationMessage?: string;
   paidMessage?: string; expiredMessage?: string; cancelledMessage?: string;
   rejectedMessage?: string; supportMessage?: string;
   securedByText?: string;
+  checkoutBrandName?: string;
 };
 
 const defaultPaySettings: PaySettings = {
@@ -1411,7 +1487,7 @@ const defaultPaySettings: PaySettings = {
   showBranding: true, primaryColor: "#8b5cf6",
   merchantName: "ZI Premium Services", merchantAccount: "01614602084",
   invoiceHeading: "Complete Your Payment", invoiceDescription: "Complete your payment and enter your transaction details below to confirm.",
-  footerText: "Powered by ZiPAY", securedByText: "Secured by ZI Pay", supportEmail: "support@zipremiumservices.com", supportPhone: "01614602084",
+  securedByText: "Secured by ZI Pay", supportEmail: "support@zipremiumservices.com", supportPhone: "01614602084",
   pendingPaymentMessage: "Please complete your payment within the time shown. After sending money, enter your details below to confirm.",
   pendingVerificationMessage: "Your payment has been submitted and is now pending verification. We will confirm and verify your payment shortly — this usually takes a few minutes.",
   paidMessage: "Your payment has been verified and completed successfully. Thank you for your payment.",
@@ -1419,6 +1495,7 @@ const defaultPaySettings: PaySettings = {
   cancelledMessage: "This payment was cancelled. No money has been taken. Please go back to the store if you still want to pay.",
   rejectedMessage: "This payment could not be verified and has been rejected. If you believe this is a mistake, please contact support.",
   supportMessage: "Having trouble? Contact our support team for assistance.",
+  checkoutBrandName: "ZiPAY GATEWAY",
 };
 
 function Checkout() {
@@ -1426,6 +1503,9 @@ function Checkout() {
   const [settings, setSettings] = useState<PaySettings>(defaultPaySettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
+  // Tracks the provider fetch so the card renders once with its method rows
+  // rather than appearing empty and popping the rows in a moment later.
+  const [providersLoaded, setProvidersLoaded] = useState(false);
   const [mintingProvider, setMintingProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -1476,7 +1556,8 @@ function Checkout() {
         const list = Array.isArray(json?.data?.methods) ? json.data.methods : [];
         if (list.length > 0) setProviders(list);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setProvidersLoaded(true));
   }, []);
 
   // Real-time provider updates — an admin add/edit/delete/reorder on
@@ -1558,72 +1639,176 @@ function Checkout() {
     }
   };
 
-  if (!settingsLoaded) {
-    return <div className="checkout-page"><div className="checkout-shell"><div className="checkout-copy"><h1>Loading checkout...</h1></div></div></div>;
+  // Admin-controlled header branding: the gateway logo and the brand name are
+  // both settings-driven, and `showBranding` hides the whole header block.
+  const showBranding = settings.showBranding !== false;
+  const brandName = settings.checkoutBrandName || "ZiPAY GATEWAY";
+  const merchantName = settings.merchantName;
+
+  const brandMark = (
+    <div className="co-brand-logo">
+      {settings.logoUrl ? (
+        <img src={settings.logoUrl} alt={brandName} />
+      ) : (
+        <Zap size={20} fill="currentColor" />
+      )}
+    </div>
+  );
+
+  // Gateway header, pinned to the top-left of the page. The lockup reads
+  // top-down: the gateway logo and brand as the small identity line, then the
+  // merchant name as the page title. Rendered for every state so it never moves.
+  const brandHeader = (
+    <header className="co-brand-bar">
+      <div className="co-brand">
+        {brandMark}
+        <div className="co-brand-text">
+          <strong>{brandName}</strong>
+          {merchantName && (
+            <span className="co-merchant">
+              <Store size={15} />
+              {merchantName}
+            </span>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+
+  // Page footer, rendered as the last child of the page (outside the centered
+  // shell) so it always sits at the bottom instead of floating mid-page.
+  const pageFooter = (
+    <footer className="co-footer">
+      <span className="co-powered">
+        <Zap size={12} fill="currentColor" />
+        Powered by <b>{merchantName || brandName}</b>
+      </span>
+    </footer>
+  );
+
+  // Single loading state for the settings fetch, the session resolve and the
+  // provider list. The skeleton reuses the real card's wrappers (`.co-summary`,
+  // `.co-pay`, `.co-section`, `.co-methods`) and renders one stand-in row per
+  // provider, so the loading layout matches the loaded layout. Without this the
+  // short skeleton snapped to the tall real card and the page shifted on every
+  // refresh. The provider list resolves first, so its (small) count is known by
+  // the time the session finishes; before that, assume a single method.
+  if (!settingsLoaded || sessionState === "resolving" || !providersLoaded) {
+    const skeletonRows = providers.length || 1;
+    return (
+      <div className="checkout-page checkout-pro">
+        {showBranding && brandHeader}
+        <div className="checkout-shell">
+          <div className="co-card co-skeleton-card">
+            <div className="co-summary">
+              <span className="co-skeleton co-skeleton-amount" />
+            </div>
+            <div className="co-pay">
+              <div className="co-section">
+                <div className="co-section-head">
+                  <span className="co-skeleton co-skeleton-label" />
+                </div>
+                <div className="co-methods">
+                  {Array.from({ length: skeletonRows }).map((_, i) => (
+                    <span key={i} className="co-skeleton co-skeleton-row" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {pageFooter}
+      </div>
+    );
   }
 
   // Missing, invalid, expired, or already-consumed session: show an
   // invalid-session page and never reveal the payment options or amount.
   if (sessionState === "invalid") {
     return (
-      <div className="checkout-page">
+      <div className="checkout-page checkout-pro">
+        {showBranding && brandHeader}
         <div className="checkout-shell">
-          <div className="checkout-copy">
-            <span className="checkout-kicker">ZI Pay</span>
-            <h1>Payment session unavailable</h1>
-            <p>This payment link is invalid or has expired. Please return to the store and start your payment again.</p>
-          </div>
-          <div className="checkout-card">
-            <div className="checkout-note">
+          <div className="co-card co-state-card">
+            <div className="co-state-icon co-state-icon--warn">
+              <Shield size={24} />
+            </div>
+            <h1 className="co-state-title">Payment session unavailable</h1>
+            <p className="co-state-text">This payment link is invalid or has expired. Please return to the store and start your payment again.</p>
+            <div className="co-note">
               <span>Why did this happen?</span>
               The payment session may have already been used, may have expired, or the link may be incorrect.
             </div>
-            <div className="secure-line"><Shield size={13} />{settings.securedByText || "Secured by ZI Pay"}</div>
+            <div className="co-secure">
+              <Shield size={13} />
+              {settings.securedByText || "Secured by ZI Pay"}
+            </div>
           </div>
-          <p className="checkout-footer">{settings.footerText || "Powered by ZI Pay Payment Gateway"}</p>
         </div>
+        {pageFooter}
       </div>
     );
   }
 
-  if (sessionState === "resolving") {
-    return <div className="checkout-page"><div className="checkout-shell"><div className="checkout-copy"><h1>Loading payment session...</h1></div></div></div>;
-  }
-
   return (
-    <div className="checkout-page">
+    <div className="checkout-page checkout-pro">
+      {showBranding && brandHeader}
       <div className="checkout-shell">
-        <header className="checkout-header">
-          <div className="checkout-logo">
-            <Zap size={16} fill="currentColor" />
-          </div>
-          <strong>ZiPAY GATEWAY</strong>
-        </header>
-        <div className="checkout-card">
-          <div className="checkout-amount-line">
-            <span>Amount to Pay</span>
-            <strong>৳ {sessionAmount.toLocaleString("en-BD")}</strong>
-          </div>
-          <div className="provider-selector">
-            <span className="field-label">Select Payment Method</span>
-            <div className="provider-options">
-              {methodCodes.map((item) => {
-                const cfg = findProvider(providers, item);
-                return (
-                  <button type="button" key={item} className={`provider-option ${mintingProvider === item ? "selected" : ""}`} onClick={() => selectProvider(item)} disabled={!!mintingProvider}>
-                    <span className={`provider-logo ${item}`}>{cfg.icon ? <img src={cfg.icon} alt={providerLabel(item)} /> : item[0]}</span><strong>{providerLabel(item)}</strong>
-                    <i>{mintingProvider === item ? "↻" : "›"}</i>
-                  </button>
-                );
-              })}
+        <div className="co-card">
+          {/* Left panel on desktop; first block on mobile. */}
+          <div className="co-summary">
+            <div className="co-amount">
+              <span className="co-amount-label">Amount to Pay</span>
+              <div className="co-amount-value">
+                <em>৳</em>
+                <span>{sessionAmount.toLocaleString("en-BD")}</span>
+              </div>
+              {sessionOrderId && (
+                <span className="co-order">Order <b>{sessionOrderId}</b></span>
+              )}
             </div>
           </div>
 
-          {error && <div className="form-error">{error}</div>}
-          {mintingProvider && <p className="checkout-hint">Creating your secure invoice…</p>}
-          <div className="secure-line"><Shield size={13} />{settings.securedByText || "Secured by ZI Pay"}</div>
+          {/* Right panel on desktop; second block on mobile. */}
+          <div className="co-pay">
+            <div className="co-section">
+              <div className="co-section-head">
+                <span className="co-step-label">Select Payment Method</span>
+              </div>
+
+              <div className="co-methods">
+                {methodCodes.map((item) => {
+                const cfg = findProvider(providers, item);
+                const busy = mintingProvider === item;
+                return (
+                  <button
+                    type="button"
+                    key={item}
+                    className={`co-method ${busy ? "is-busy" : ""}`}
+                    onClick={() => selectProvider(item)}
+                    disabled={!!mintingProvider}
+                  >
+                    <span className={`co-method-logo ${item}`}>
+                      {cfg.icon ? <img src={cfg.icon} alt={providerLabel(item)} /> : providerLabel(item)[0]}
+                    </span>
+                    <span className="co-method-info">
+                      <strong>{cfg.displayName || providerLabel(item)}</strong>
+                      <small>{busy ? "Creating secure invoice…" : cfg.qrImageUrl ? "Scan the QR code to pay" : "Send money to the merchant number"}</small>
+                    </span>
+                    <span className="co-method-go">
+                      {busy ? <i className="co-spinner co-spinner--sm" /> : <ChevronRight size={17} />}
+                    </span>
+                  </button>
+                );
+              })}
+              </div>
+            </div>
+
+            {error && <div className="co-error"><Info size={14} />{error}</div>}
+          </div>
         </div>
       </div>
+      {pageFooter}
     </div>
   );
 }
@@ -1953,7 +2138,7 @@ function InvoicePayment() {
           </div>
         </motion.div>
         <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
-        <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
+        <p className="bk-foot">Powered by ZiPAY</p>
       </div>
     );
   }
@@ -2042,22 +2227,15 @@ function InvoicePayment() {
             <h2 className="bk-success-title">{conf.title}</h2>
             <p className="bk-success-text">{conf.text}</p>
             <div className="bk-invoice-card" style={{ marginTop: 18 }}>
-              {providerAccountName && (
-                <div className="bk-invoice-row">
-                  <span className="bk-invoice-label">Merchant:</span>
-                  <span className="bk-invoice-value">{providerAccountName}</span>
-                </div>
-              )}
+              {providerAccountName && <InvoiceRow icon={Store} tone="purple" label="Merchant:" value={providerAccountName} />}
               <div className="bk-invoice-row">
-                <span className="bk-invoice-label">Amount:</span>
+                <span className="bk-invoice-label">
+                  <span className="bk-label-chip tone-amber"><Tag size={12} /></span>
+                  Amount:
+                </span>
                 <span className="bk-invoice-amount">৳{toWholeTaka(invoiceData.amount).toLocaleString("en-BD")}</span>
               </div>
-              {invoiceData.transactionId && (
-                <div className="bk-invoice-row">
-                  <span className="bk-invoice-label">TRX ID:</span>
-                  <span className="bk-invoice-value">{invoiceData.transactionId}</span>
-                </div>
-              )}
+              {invoiceData.transactionId && <InvoiceRow icon={Hash} tone="orange" label="TRX ID:" value={invoiceData.transactionId} />}
             </div>
             {isPaid && redirectIn > 0 && (
               <p className="bk-success-text" style={{ marginTop: 14, textAlign: "center" }}>
@@ -2074,7 +2252,7 @@ function InvoicePayment() {
           </div>
         </motion.div>
         <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
-        <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
+        <p className="bk-foot">Powered by ZiPAY</p>
       </div>
     );
   }
@@ -2114,7 +2292,7 @@ function InvoicePayment() {
           </div>
         </motion.div>
         <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
-        <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
+        <p className="bk-foot">Powered by ZiPAY</p>
       </div>
     );
   }
@@ -2147,46 +2325,54 @@ function InvoicePayment() {
           </p>
         </div>
 
-        {/* Main Card */}
+        {/* Main Card — `.bk-info` + `.bk-pay-col` stack on mobile and become the
+            two columns of the desktop layout (CSS in invoice.css). */}
         <main className="bk-card">
+          <div className="bk-info">
           {/* Invoice Details */}
           <div className="bk-invoice-card">
-            <div className="bk-invoice-row">
-              <span className="bk-invoice-label">Merchant:</span>
-              <span className="bk-invoice-value">{providerAccountName}</span>
-            </div>
+            <InvoiceRow icon={Store} tone="purple" label="Merchant:" value={providerAccountName} />
             {!isQrProvider && providerAccountType && (
-              <div className="bk-invoice-row">
-                <span className="bk-invoice-label">Account Type:</span>
-                <span className="bk-invoice-value">{providerAccountType}</span>
-              </div>
+              <InvoiceRow
+                icon={accountTypeMeta(providerAccountType).icon}
+                tone={providerAccountType === "personal" ? "violet" : "blue"}
+                label="Account Type:"
+                value={
+                  <span className={`type-badge ${providerAccountType === "personal" ? "personal" : "merchant"}`} title={`${accountTypeMeta(providerAccountType).label} account`}>
+                    {(() => { const TypeIcon = accountTypeMeta(providerAccountType).icon; return <TypeIcon size={12} />; })()}
+                    {accountTypeMeta(providerAccountType).label}
+                  </span>
+                }
+              />
             )}
             {!isQrProvider && (
-              <div className="bk-invoice-row">
-                <span className="bk-invoice-label">Merchant Account:</span>
-                <span className="bk-invoice-value" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  {providerAccount || "—"}
-                  {providerAccount ? (
-                    <button
-                      type="button"
-                      onClick={() => copyMerchantNumber(providerAccount)}
-                      style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: copiedMerchant ? "#22c55e" : "#9ca3af" }}
-                      title={copiedMerchant ? "Copied!" : "Copy number"}
-                    >
-                      {copiedMerchant ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-                    </button>
-                  ) : null}
-                </span>
-              </div>
+              <InvoiceRow
+                icon={Wallet}
+                tone="green"
+                label="Merchant Account:"
+                value={
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    {providerAccount || "—"}
+                    {providerAccount ? (
+                      <button
+                        type="button"
+                        onClick={() => copyMerchantNumber(providerAccount)}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: copiedMerchant ? "#22c55e" : "#9ca3af" }}
+                        title={copiedMerchant ? "Copied!" : "Copy number"}
+                      >
+                        {copiedMerchant ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                      </button>
+                    ) : null}
+                  </span>
+                }
+              />
             )}
-            {invoiceData?.orderId && (
-              <div className="bk-invoice-row">
-                <span className="bk-invoice-label">Invoice:</span>
-                <span className="bk-invoice-value">{invoiceData.orderId}</span>
-              </div>
-            )}
+            {invoiceData?.orderId && <InvoiceRow icon={Hash} tone="orange" label="Invoice:" value={invoiceData.orderId} />}
             <div className="bk-invoice-row">
-              <span className="bk-invoice-label">Amount:</span>
+              <span className="bk-invoice-label">
+                <span className="bk-label-chip tone-amber"><Tag size={12} /></span>
+                Amount:
+              </span>
               <span className="bk-invoice-amount">৳{toWholeTaka(amount).toLocaleString("en-BD")}</span>
             </div>
           </div>
@@ -2221,7 +2407,9 @@ function InvoicePayment() {
               <span>{resolvedProviderConfig.notice}</span>
             </div>
           )}
+          </div>
 
+          <div className="bk-pay-col">
           {/* Provider Color Section — 2-step flow (1-step for QR providers) */}
           <motion.div
             key={resolvedProvider + (isQrProvider ? "trx" : formStep)}
@@ -2233,12 +2421,9 @@ function InvoicePayment() {
           >
             <h2 className="bk-pay-title">{providerLabel(resolvedProvider)}</h2>
             <p className="bk-pay-sub">
-              {isQrProvider
-                ? "Transaction ID from SMS"
-                : formStep === "phone"
-                  ? "Your " + providerLabel(resolvedProvider) + " Account Number"
-                  : "Transaction ID from SMS"
-              }
+              {!isQrProvider && formStep === "phone"
+                ? `Your ${providerLabel(resolvedProvider)} account number`
+                : "Transaction ID from your payment SMS"}
             </p>
 
             {/* Step 1 — Phone number (hidden for QR providers) */}
@@ -2289,12 +2474,9 @@ function InvoicePayment() {
             )}
 
             <p className="bk-pay-hint">
-              {isQrProvider
-                ? "You'll find this in your payment confirmation SMS"
-                : formStep === "phone"
-                  ? "Enter the " + providerLabel(resolvedProvider) + " number you paid from"
-                  : "You'll find this in your payment confirmation SMS"
-              }
+              {!isQrProvider && formStep === "phone"
+                ? `Enter the ${providerLabel(resolvedProvider)} number you paid from`
+                : "You'll find this in your payment confirmation SMS"}
             </p>
 
             <div className="bk-btn-row">
@@ -2418,6 +2600,7 @@ function InvoicePayment() {
               <span>I agree to the <a href={`${MAIN_SITE_URL}/terms-of-service`} target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a></span>
             </label>
           </div>
+          </div>
         </main>
       </motion.div>
 
@@ -2445,7 +2628,7 @@ function InvoicePayment() {
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <span className="bk-how-num">{idx + 1}</span>
-              <span className="bk-how-text">{s}</span>
+              <span className="bk-how-text">{stripStepNumber(s, idx + 1)}</span>
             </motion.div>
           ))}
         </div>
@@ -2457,16 +2640,16 @@ function InvoicePayment() {
         >
           <ShieldCheck size={16} className="bk-how-secure-icon" />
           <div>
-            <p className="bk-how-secure-title">100% Secure Payment</p>
+            <p className="bk-how-secure-title">Your payment details are private</p>
             <p className="bk-how-secure-text">
-              Your payment information is safe with us. We never store your PIN or OTP.
+              We only use your transaction ID to verify this payment. We never ask for your PIN or OTP.
             </p>
           </div>
         </motion.div>
       </motion.div>
 
       <CustomerSupportFooter supportNumber={providerSupportNumber} supportText={settings.supportMessage} />
-      <p className="bk-foot">{settings.footerText || "Powered by ZiPAY"}</p>
+      <p className="bk-foot">Powered by ZiPAY</p>
     </div>
   );
 }

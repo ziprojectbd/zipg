@@ -199,7 +199,6 @@ export const updatePaySettingsSchema = z.object({
   merchantAccount: z.string().max(30).optional(),
   invoiceHeading: z.string().max(200).optional(),
   invoiceDescription: z.string().max(500).optional(),
-  footerText: z.string().max(200).optional(),
   securedByText: z.string().max(200).optional(),
   supportEmail: z.string().max(200).optional(),
   supportPhone: z.string().max(30).optional(),
@@ -210,6 +209,7 @@ export const updatePaySettingsSchema = z.object({
   cancelledMessage: z.string().max(500).optional(),
   rejectedMessage: z.string().max(500).optional(),
   supportMessage: z.string().max(500).optional(),
+  checkoutBrandName: z.string().max(60).optional(),
 });
 
 export const updateSystemSettingsSchema = z.object({

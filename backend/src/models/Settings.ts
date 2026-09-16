@@ -13,7 +13,6 @@ export interface IPaySettings {
   merchantAccount?: string;
   invoiceHeading?: string;
   invoiceDescription?: string;
-  footerText?: string;
   supportEmail?: string;
   supportPhone?: string;
   /* ── Invoice state messages ── */
@@ -26,6 +25,8 @@ export interface IPaySettings {
   supportMessage?: string;
   /* ── Checkout page secure-line text ── */
   securedByText?: string;
+  /* ── Checkout page (/payment/choose) header brand name ── */
+  checkoutBrandName?: string;
 }
 
 export interface ISystemSettings {

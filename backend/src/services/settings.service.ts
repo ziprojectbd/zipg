@@ -16,7 +16,6 @@ const DEFAULT_PAY_SETTINGS: IPaySettings = {
   merchantAccount: '01614602084',
   invoiceHeading: 'Complete Your Payment',
   invoiceDescription: 'Pay securely using your preferred mobile wallet. Your payment will be verified automatically.',
-  footerText: 'Powered by ZiPAY',
   securedByText: 'Secured by ZI Pay',
   supportEmail: 'support@zipremiumservices.com',
   supportPhone: '01614602084',
@@ -28,6 +27,7 @@ const DEFAULT_PAY_SETTINGS: IPaySettings = {
   cancelledMessage: 'This payment request has been cancelled.',
   rejectedMessage: 'Your payment could not be verified. Please contact support for assistance.',
   supportMessage: 'Need help with your payment? Contact our support team.',
+  checkoutBrandName: 'ZiPAY GATEWAY',
 };
 
 const DEFAULT_SYSTEM_SETTINGS: ISystemSettings = {
@@ -59,10 +59,10 @@ export async function updatePaySettings(
   userId?: string
 ): Promise<IPaySettings> {
   const current = await getPaySettings();
-  const updated: IPaySettings = {
+  const updated: IPaySettings = trimPaySettings({
     ...current,
     ...data,
-  };
+  });
 
   await Settings.findOneAndUpdate(
     { key: 'pay_settings', group: 'pay' },
@@ -92,6 +92,19 @@ export async function updatePaySettings(
   });
 
   return updated;
+}
+
+/**
+ * Trim surrounding whitespace on every admin-authored string, so a value
+ * pasted with a stray space (e.g. " Powered by ZiPAY") is not rendered with
+ * that padding on the public pages. Non-string values pass through untouched.
+ */
+function trimPaySettings(settings: IPaySettings): IPaySettings {
+  const out: Record<string, unknown> = { ...settings };
+  for (const [key, value] of Object.entries(out)) {
+    if (typeof value === 'string') out[key] = value.trim();
+  }
+  return out as unknown as IPaySettings;
 }
 
 /** Log only non-sensitive changed fields (never passwords, tokens, secrets). */

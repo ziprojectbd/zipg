@@ -106,6 +106,32 @@
   color: #9ca3af;
   white-space: nowrap;
 }
+/* Small colour-coded icon chip on the label, so each invoice field is scannable. */
+.bk-invoice-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.bk-label-chip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: #eef0f5;
+  color: #6b7280;
+  border: 1px solid #e6e9f0;
+}
+.bk-label-chip svg { display: block; }
+/* Per-field tones — each label icon gets its own hue so rows scan quickly. */
+.bk-label-chip.tone-purple { background: #f1ecff; color: #6d28d9; border-color: #e2d9ff; }
+.bk-label-chip.tone-violet { background: #f5edff; color: #7e22ce; border-color: #eadcff; }
+.bk-label-chip.tone-blue   { background: #e8f1ff; color: #1d4ed8; border-color: #cfe0ff; }
+.bk-label-chip.tone-green  { background: #e3f7ee; color: #0f9d63; border-color: #c8eedd; }
+.bk-label-chip.tone-orange { background: #fdf0e6; color: #c2691b; border-color: #f8e2cd; }
+.bk-label-chip.tone-amber  { background: #fff5e0; color: #b7791f; border-color: #fbe7bd; }
+.bk-label-chip.tone-slate  { background: #eef0f5; color: #6b7280; border-color: #e6e9f0; }
 .bk-invoice-value {
   font-size: 14px;
   font-weight: 600;
@@ -113,6 +139,21 @@
   text-align: right;
   word-break: break-word;
 }
+/* Account-type pill reused from the admin payment-methods table. */
+.bk-invoice-value .type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.bk-invoice-value .type-badge svg { flex: none; }
+.bk-invoice-value .type-badge.merchant { background: #e8f1ff; color: #1d4ed8; border: 1px solid #cfe0ff; }
+.bk-invoice-value .type-badge.personal { background: #f1ecff; color: #6d28d9; border: 1px solid #e2d9ff; }
 .bk-invoice-amount {
   font-size: 20px;
   font-weight: 800;
@@ -552,7 +593,123 @@
   color: #111827;
 }
 
-/* ── Responsive ── */
+/* ─────────────────────────────────────────────────────────────
+   Desktop layout (≥900px).
+   Mobile stays a single stacked column (see the max-width rules above);
+   on larger screens the card widens and splits into two columns —
+   invoice details on the left, payment form on the right.
+   ───────────────────────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .bk-page {
+    padding: 36px 24px;
+  }
+
+  /* Header */
+  .bk-top {
+    max-width: 880px;
+    margin-bottom: 20px;
+  }
+  .bk-top-lock {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+  }
+  .bk-title {
+    font-size: 26px;
+  }
+  .bk-sub {
+    font-size: 13px;
+  }
+
+  /* Two-column card */
+  .bk-card {
+    max-width: 880px;
+    padding: 26px;
+    border-radius: 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .bk-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .bk-pay-col {
+    min-width: 0;
+  }
+
+  /* Roomier invoice summary */
+  .bk-invoice-card {
+    padding: 18px 20px;
+    border-radius: 16px;
+  }
+  .bk-invoice-row {
+    padding: 8px 0;
+  }
+  .bk-invoice-label {
+    font-size: 12.5px;
+  }
+  .bk-invoice-value {
+    font-size: 15px;
+  }
+  .bk-invoice-amount {
+    font-size: 22px;
+  }
+  .bk-label-chip {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+
+  .bk-provider-qr img {
+    width: 190px;
+    height: 190px;
+  }
+
+  /* Payment box */
+  .bk-pay-box {
+    border-radius: 18px;
+    padding: 26px 22px 24px;
+    margin-bottom: 16px;
+  }
+  .bk-pay-title {
+    font-size: 20px;
+  }
+  .bk-pay-sub {
+    font-size: 12px;
+    margin-bottom: 18px;
+  }
+  .bk-bignum {
+    padding: 15px 16px;
+    font-size: 17px;
+  }
+  .bk-btn {
+    padding: 15px 0;
+    font-size: 15.5px;
+  }
+
+  /* Below the card */
+  .bk-how,
+  .bk-support {
+    max-width: 880px;
+  }
+  .bk-how {
+    padding: 20px 22px;
+    border-radius: 20px;
+  }
+  .bk-how-steps {
+    gap: 10px;
+  }
+  .bk-how-text {
+    font-size: 11px;
+  }
+  .bk-foot {
+    margin-top: 22px;
+  }
+}
+
 @media (max-width: 480px) {
   .bk-page {
     padding: 12px 12px;
@@ -573,6 +730,12 @@
   }
   .bk-invoice-label {
     font-size: 11px;
+    gap: 6px;
+  }
+  .bk-label-chip {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
   }
   .bk-invoice-value {
     font-size: 13px;

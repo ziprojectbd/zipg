@@ -1,6 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel+Decorative:wght@700;900&display=swap');
 :root{font-family:'DM Sans',sans-serif;color:#e8eaf0;background:#0c0818;font-synthesis:none;--bg:#0c0818;--panel:#130e24;--panel2:#1a1430;--line:#1f1a35;--muted:#8b93a7;--text:#edf0f7;--purple:#9177f5;--green:#55d69b;--orange:#f1a35b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;background:var(--bg);color:var(--text);display:flex}.sidebar{width:250px;flex:none;background:#0d1119;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px 14px;gap:20px;position:sticky;top:0;height:100vh;overflow:hidden}.brand{display:flex;align-items:center;gap:10px;padding:0 9px}.brand-mark{display:grid;place-items:center;width:28px;height:28px;background:var(--purple);color:#fff;border-radius:8px;box-shadow:0 5px 18px #8064ee44}.brand strong{display:block;font-family:'Space Grotesk';font-size:18px;letter-spacing:-.03em}.brand span{display:block;color:var(--muted);font-size:10px;margin-top:1px}.workspace{display:flex;align-items:center;gap:9px;padding:10px 9px;border:1px solid var(--line);border-radius:10px;background:#111722}.workspace-avatar,.avatar,.header-avatar{display:grid;place-items:center;background:#5e4bb6;color:#fff;font-weight:700}.workspace-avatar{width:27px;height:27px;border-radius:7px;font-size:12px}.workspace div:nth-child(2){flex:1;min-width:0}.workspace strong,.workspace small,.user-card strong,.user-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workspace strong{font-size:12px}.workspace small,.user-card small{font-size:10px;color:var(--muted);margin-top:2px}.nav{display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}.nav a,.nav-bottom a{display:flex;align-items:center;gap:12px;padding:10px 11px;border-radius:8px;color:#8f97aa;text-decoration:none;font-size:13px;font-weight:500}.nav a:hover,.nav-bottom a:hover{background:#171d29;color:#fff}.nav a.active{background:#1d1930;color:#d8d0ff}.nav a.active svg{color:var(--purple)}.nav-bottom{display:flex;flex-direction:column;gap:4px;margin-top:auto}.user-card{display:flex;align-items:center;gap:9px;padding:12px 8px;border-top:1px solid var(--line)}.user-card>div:nth-child(2){flex:1;min-width:0}.avatar{width:30px;height:30px;border-radius:50%;font-size:10px;background:#314d7b}.avatar-img{object-fit:cover;border:2px solid #3d357a}.user-card>svg{color:var(--muted)}.main{flex:1;min-width:0}.topbar{height:78px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 34px;position:sticky;top:0;z-index:5;background:var(--bg)}.topbar-left,.top-actions,.page-intro,.metric-head,.metric-foot,.card-heading,.health-score,.provider-row,.provider-name{display:flex;align-items:center}.topbar-left{gap:14px}.eyebrow,.card-kicker{font-size:10px;color:#6f7890;text-transform:uppercase;letter-spacing:.09em;font-weight:600}.topbar h1{font:600 18px 'Space Grotesk';margin:5px 0 0;letter-spacing:-.02em}.top-actions{gap:13px}.search{width:220px;height:34px;border:1px solid var(--line);background:#10151e;border-radius:7px;display:flex;align-items:center;gap:8px;padding:0 9px;color:#697287}.search input{border:0;outline:0;background:transparent;color:var(--text);width:100%;font-size:12px}.search kbd{font-size:10px;border:1px solid #353c4b;border-radius:4px;padding:2px 4px;white-space:nowrap;color:#8c94a7}.icon-btn{background:transparent;border:0;color:#9ba3b5;display:grid;place-items:center;padding:6px;border-radius:7px}.icon-btn:hover{background:#1a202c;color:#fff}.notification{position:relative}.notification i{position:absolute;right:5px;top:4px;width:5px;height:5px;border-radius:50%;background:#e85c8f}.header-avatar{width:30px;height:30px;border-radius:50%;font-size:10px}.menu-btn,.mobile-close{display:none}.content{padding:32px 34px 48px;max-width:1600px;margin:auto}.page-intro{justify-content:space-between;margin-bottom:25px}.page-intro h2{font:600 23px 'Space Grotesk';margin:0 0 7px;letter-spacing:-.04em}.page-intro p,.resource-page p{font-size:13px;color:var(--muted);margin:0;line-height:1.5}.primary-btn,.outline-btn,.text-btn{display:flex;align-items:center;gap:8px;border:0;border-radius:7px;font-size:12px;font-weight:600;padding:10px 13px}.primary-btn{background:var(--purple);color:#fff;box-shadow:0 8px 24px #8064ee29}.primary-btn:hover{background:#a08af9}.outline-btn{background:transparent;border:1px solid var(--line);color:#b6bdcc}.outline-btn:hover{background:#191f2b;color:#fff}.text-btn{background:transparent;padding:4px;color:#9a85f6}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px}.metric{padding:17px 18px}.metric-head{justify-content:space-between;color:#969fb1;font-size:12px}.metric-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px}.metric-icon.purple{background:#2d254a;color:#aa96ff}.metric-icon.green{background:#19352c;color:#64dca8}.metric-icon.blue{background:#1d3046;color:#65b6ed}.metric-icon.orange{background:#3c2d24;color:#f0aa6a}.metric>strong{font:600 22px 'Space Grotesk';display:block;margin:17px 0 9px;letter-spacing:-.04em}.metric-foot{gap:7px;font-size:10px;color:#697387}.positive{display:inline-flex;align-items:center;gap:2px;color:var(--green)}.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px;margin-top:14px}.card-heading{justify-content:space-between;gap:12px}.card-heading h2{font:600 25px 'Space Grotesk';margin:10px 0 5px;letter-spacing:-.04em}.card-heading h3{font:600 15px 'Space Grotesk';margin:7px 0 0}.chart-card,.provider-card,.transactions-card,.health-card{padding:20px}.chart-card select{background:#171d28;border:1px solid var(--line);color:#aab2c1;padding:8px;border-radius:6px;font-size:11px;outline:0}.chart-caption{display:flex;gap:7px;color:var(--muted);font-size:11px}.chart{height:190px;position:relative;margin:18px 0 0 38px}.chart:before{content:'';position:absolute;inset:0 0 22px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 34px,#252b38 35px)}.chart svg{position:absolute;inset:0 0 20px;width:100%;height:calc(100% - 20px)}.y-labels{position:absolute;left:-38px;height:calc(100% - 28px);display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:#687185}.x-labels{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;color:#687185;font-size:9px}.provider-card{display:flex;flex-direction:column;gap:14px}.provider-row{justify-content:space-between;gap:10px;font-size:12px}.provider-name{gap:9px}.provider-name>div{min-width:90px}.provider-name strong,.provider-name small{display:block}.provider-name small{color:var(--muted);font-size:10px;margin-top:3px}.provider-percent{font-size:10px;color:var(--muted);width:34px;text-align:right}.provider-logo{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;color:#fff;font-weight:700;font-family:serif;font-size:18px;overflow:hidden}.provider-logo img{width:100%;height:100%;object-fit:cover}.bkash{background:#d9417c}.nagad{background:#e87938}.rocket{background:#7746ac}.progress{height:4px;background:#202633;border-radius:5px;margin-top:-9px}.progress i{display:block;height:100%;border-radius:inherit}.lower{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr)}.transactions-card{padding-bottom:7px}.table-wrap{overflow:auto;margin:14px -20px -7px}table{width:100%;border-collapse:collapse;min-width:720px}th{text-align:left;padding:10px 20px;color:#687185;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}td{padding:13px 20px;border-bottom:1px solid #1c222e;color:#adb5c4;font-size:11px;white-space:nowrap}td:first-child strong,td:first-child small{display:block}td:first-child strong{color:#f1f2f6;font-size:11px}td:first-child small{color:#6f788c;font-size:10px;margin-top:4px}.status{display:inline-flex;align-items:center;gap:5px;font-size:10px}.status i{width:6px;height:6px;border-radius:50%;background:#8b93a7}.status.paid{color:var(--green)}.status.paid i{background:var(--green)}.status.processing{color:#e7bd69}.status.processing i{background:#e7bd69}.status.failed{color:#e97389}.status.failed i{background:#e97389}.mini-provider{font-size:10px;padding:4px 7px;border-radius:4px;background:#302243;color:#be9eff}.mini-provider.nagad{background:#382c23;color:#f3ae78}.mini-provider.rocket{background:#2d2440;color:#bf9eea}.health-card{display:flex;flex-direction:column}.health-score{gap:16px;border:1px solid var(--line);background:#121821;border-radius:8px;padding:15px;margin-top:18px}.score-ring{width:74px;height:74px;border-radius:50%;border:5px solid #267a5a;display:flex;flex-direction:column;align-items:center;justify-content:center}.score-ring strong{font-size:12px}.score-ring span{font-size:9px;color:var(--muted);margin-top:2px}.health-score>div:last-child strong{font-size:12px}.health-score p{font-size:10px;color:var(--muted);margin-top:5px}.health-list{display:flex;flex-direction:column;gap:13px;padding:18px 2px}.health-list div{display:flex;justify-content:space-between;color:#afb6c5;font-size:11px}.health-list b{font-weight:500;color:var(--green);font-size:10px}.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:7px}.dot.green{background:var(--green)}.full{width:100%;justify-content:center;margin-top:auto}.resource-page .page-intro{margin-bottom:28px}.resource-title{display:flex;align-items:center;gap:11px;margin-bottom:8px}.resource-title h2{margin:0}.empty-card{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}.empty-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:13px;background:#2d254a;color:#a895ff;margin-bottom:15px}.empty-card h3{font:600 17px 'Space Grotesk';margin:0 0 7px}.empty-card p{max-width:320px;margin-bottom:18px}.scrim{display:none}
+*{box-sizing:border-box}
+/* Reserve the scrollbar track at all times. The checkout page is centered and
+   grows as it loads; without a reserved gutter the body scrollbar appears only
+   once content is tall enough, shifting the whole centered layout sideways. */
+html{scrollbar-gutter:stable}
+body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;background:var(--bg);color:var(--text);display:flex}.sidebar{width:250px;flex:none;background:#0d1119;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px 14px;gap:20px;position:sticky;top:0;height:100vh;overflow:hidden}.brand{display:flex;align-items:center;gap:10px;padding:0 9px}.brand-mark{display:grid;place-items:center;width:28px;height:28px;background:var(--purple);color:#fff;border-radius:8px;box-shadow:0 5px 18px #8064ee44}.brand strong{display:block;font-family:'Space Grotesk';font-size:18px;letter-spacing:-.03em}.brand span{display:block;color:var(--muted);font-size:10px;margin-top:1px}.workspace{display:flex;align-items:center;gap:9px;padding:10px 9px;border:1px solid var(--line);border-radius:10px;background:#111722}.workspace-avatar,.avatar,.header-avatar{display:grid;place-items:center;background:#5e4bb6;color:#fff;font-weight:700}.workspace-avatar{width:27px;height:27px;border-radius:7px;font-size:12px}.workspace div:nth-child(2){flex:1;min-width:0}.workspace strong,.workspace small,.user-card strong,.user-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workspace strong{font-size:12px}.workspace small,.user-card small{font-size:10px;color:var(--muted);margin-top:2px}.nav{display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}.nav a,.nav-bottom a{display:flex;align-items:center;gap:12px;padding:10px 11px;border-radius:8px;color:#8f97aa;text-decoration:none;font-size:13px;font-weight:500}.nav a:hover,.nav-bottom a:hover{background:#171d29;color:#fff}.nav a.active{background:#1d1930;color:#d8d0ff}.nav a.active svg{color:var(--purple)}.nav-bottom{display:flex;flex-direction:column;gap:4px;margin-top:auto}.user-card{display:flex;align-items:center;gap:9px;padding:12px 8px;border-top:1px solid var(--line)}.user-card>div:nth-child(2){flex:1;min-width:0}.avatar{width:30px;height:30px;border-radius:50%;font-size:10px;background:#314d7b}.avatar-img{object-fit:cover;border:2px solid #3d357a}.user-card>svg{color:var(--muted)}.main{flex:1;min-width:0}.topbar{height:78px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 34px;position:sticky;top:0;z-index:5;background:var(--bg)}.topbar-left,.top-actions,.page-intro,.metric-head,.metric-foot,.card-heading,.health-score,.provider-row,.provider-name{display:flex;align-items:center}.topbar-left{gap:14px}.eyebrow,.card-kicker{font-size:10px;color:#6f7890;text-transform:uppercase;letter-spacing:.09em;font-weight:600}.topbar h1{font:600 18px 'Space Grotesk';margin:5px 0 0;letter-spacing:-.02em}.top-actions{gap:13px}.search{width:220px;height:34px;border:1px solid var(--line);background:#10151e;border-radius:7px;display:flex;align-items:center;gap:8px;padding:0 9px;color:#697287}.search input{border:0;outline:0;background:transparent;color:var(--text);width:100%;font-size:12px}.search kbd{font-size:10px;border:1px solid #353c4b;border-radius:4px;padding:2px 4px;white-space:nowrap;color:#8c94a7}.icon-btn{background:transparent;border:0;color:#9ba3b5;display:grid;place-items:center;padding:6px;border-radius:7px}.icon-btn:hover{background:#1a202c;color:#fff}.notification{position:relative}.notification i{position:absolute;right:5px;top:4px;width:5px;height:5px;border-radius:50%;background:#e85c8f}.header-avatar{width:30px;height:30px;border-radius:50%;font-size:10px}.menu-btn,.mobile-close{display:none}.content{padding:32px 34px 48px;max-width:1600px;margin:auto}.page-intro{justify-content:space-between;margin-bottom:25px}.page-intro h2{font:600 23px 'Space Grotesk';margin:0 0 7px;letter-spacing:-.04em}.page-intro p,.resource-page p{font-size:13px;color:var(--muted);margin:0;line-height:1.5}.primary-btn,.outline-btn,.text-btn{display:flex;align-items:center;gap:8px;border:0;border-radius:7px;font-size:12px;font-weight:600;padding:10px 13px}.primary-btn{background:var(--purple);color:#fff;box-shadow:0 8px 24px #8064ee29}.primary-btn:hover{background:#a08af9}.outline-btn{background:transparent;border:1px solid var(--line);color:#b6bdcc}.outline-btn:hover{background:#191f2b;color:#fff}.text-btn{background:transparent;padding:4px;color:#9a85f6}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px}.metric{padding:17px 18px}.metric-head{justify-content:space-between;color:#969fb1;font-size:12px}.metric-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px}.metric-icon.purple{background:#2d254a;color:#aa96ff}.metric-icon.green{background:#19352c;color:#64dca8}.metric-icon.blue{background:#1d3046;color:#65b6ed}.metric-icon.orange{background:#3c2d24;color:#f0aa6a}.metric>strong{font:600 22px 'Space Grotesk';display:block;margin:17px 0 9px;letter-spacing:-.04em}.metric-foot{gap:7px;font-size:10px;color:#697387}.positive{display:inline-flex;align-items:center;gap:2px;color:var(--green)}.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px;margin-top:14px}.card-heading{justify-content:space-between;gap:12px}.card-heading h2{font:600 25px 'Space Grotesk';margin:10px 0 5px;letter-spacing:-.04em}.card-heading h3{font:600 15px 'Space Grotesk';margin:7px 0 0}.chart-card,.provider-card,.transactions-card,.health-card{padding:20px}.chart-card select{background:#171d28;border:1px solid var(--line);color:#aab2c1;padding:8px;border-radius:6px;font-size:11px;outline:0}.chart-caption{display:flex;gap:7px;color:var(--muted);font-size:11px}.chart{height:190px;position:relative;margin:18px 0 0 38px}.chart:before{content:'';position:absolute;inset:0 0 22px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 34px,#252b38 35px)}.chart svg{position:absolute;inset:0 0 20px;width:100%;height:calc(100% - 20px)}.y-labels{position:absolute;left:-38px;height:calc(100% - 28px);display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:#687185}.x-labels{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;color:#687185;font-size:9px}.provider-card{display:flex;flex-direction:column;gap:14px}.provider-row{justify-content:space-between;gap:10px;font-size:12px}.provider-name{gap:9px}.provider-name>div{min-width:90px}.provider-name strong,.provider-name small{display:block}.provider-name small{color:var(--muted);font-size:10px;margin-top:3px}.provider-percent{font-size:10px;color:var(--muted);width:34px;text-align:right}.provider-logo{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;color:#fff;font-weight:700;font-family:serif;font-size:18px;overflow:hidden}.provider-logo img{width:100%;height:100%;object-fit:cover}.bkash{background:#d9417c}.nagad{background:#e87938}.rocket{background:#7746ac}.progress{height:4px;background:#202633;border-radius:5px;margin-top:-9px}.progress i{display:block;height:100%;border-radius:inherit}.lower{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr)}.transactions-card{padding-bottom:7px}.table-wrap{overflow:auto;margin:14px -20px -7px}table{width:100%;border-collapse:collapse;min-width:720px}th{text-align:left;padding:10px 20px;color:#687185;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}td{padding:13px 20px;border-bottom:1px solid #1c222e;color:#adb5c4;font-size:11px;white-space:nowrap}td:first-child strong,td:first-child small{display:block}td:first-child strong{color:#f1f2f6;font-size:11px}td:first-child small{color:#6f788c;font-size:10px;margin-top:4px}.status{display:inline-flex;align-items:center;gap:5px;font-size:10px}.status i{width:6px;height:6px;border-radius:50%;background:#8b93a7}.status.paid{color:var(--green)}.status.paid i{background:var(--green)}.status.processing{color:#e7bd69}.status.processing i{background:#e7bd69}.status.failed{color:#e97389}.status.failed i{background:#e97389}.mini-provider{font-size:10px;padding:4px 7px;border-radius:4px;background:#302243;color:#be9eff}.mini-provider.nagad{background:#382c23;color:#f3ae78}.mini-provider.rocket{background:#2d2440;color:#bf9eea}.health-card{display:flex;flex-direction:column}.health-score{gap:16px;border:1px solid var(--line);background:#121821;border-radius:8px;padding:15px;margin-top:18px}.score-ring{width:74px;height:74px;border-radius:50%;border:5px solid #267a5a;display:flex;flex-direction:column;align-items:center;justify-content:center}.score-ring strong{font-size:12px}.score-ring span{font-size:9px;color:var(--muted);margin-top:2px}.health-score>div:last-child strong{font-size:12px}.health-score p{font-size:10px;color:var(--muted);margin-top:5px}.health-list{display:flex;flex-direction:column;gap:13px;padding:18px 2px}.health-list div{display:flex;justify-content:space-between;color:#afb6c5;font-size:11px}.health-list b{font-weight:500;color:var(--green);font-size:10px}.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:7px}.dot.green{background:var(--green)}.full{width:100%;justify-content:center;margin-top:auto}.resource-page .page-intro{margin-bottom:28px}.resource-title{display:flex;align-items:center;gap:11px;margin-bottom:8px}.resource-title h2{margin:0}.empty-card{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}.empty-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:13px;background:#2d254a;color:#a895ff;margin-bottom:15px}.empty-card h3{font:600 17px 'Space Grotesk';margin:0 0 7px}.empty-card p{max-width:320px;margin-bottom:18px}.scrim{display:none}
 @media(max-width:1100px){.metrics{grid-template-columns:repeat(2,1fr)}.dashboard-grid,.lower{grid-template-columns:1fr}.health-card{min-height:330px}}
 .checkout-page{min-height:100vh;background:radial-gradient(circle at 80% 10%,#21183f 0,#090c12 38%);color:var(--text);padding:30px 20px}.checkout-shell{width:min(100%,620px);margin:0 auto}.checkout-brand-row{display:flex;align-items:center;justify-content:space-between}.checkout-brand-row a{display:flex;align-items:center;gap:5px;color:#b8aecf;text-decoration:none;font-size:13px}.checkout-copy{text-align:center;padding:70px 0 28px}.checkout-kicker{display:block;color:var(--purple);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}.checkout-copy h1,.checkout-success h1{font-family:'Space Grotesk';font-size:clamp(30px,6vw,48px);letter-spacing:-.05em;line-height:1.05;margin:12px 0}.checkout-copy p,.checkout-success>p{color:var(--muted);line-height:1.6;margin:0 auto;max-width:480px}.checkout-card{background:#111722;border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 24px 80px #0007}.checkout-amount-line{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#0d1119;border:1px solid #514477;border-radius:10px;padding:14px 16px;margin-bottom:18px}.checkout-amount-line span{color:var(--muted);font-size:12px}.checkout-amount-line strong{font-family:'Space Grotesk';font-size:20px;color:#d9ceff}.field-label,.checkout-fields label{display:block;color:#cbd0dc;font-size:12px;font-weight:600}.provider-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:9px}.provider-option{display:flex;align-items:center;gap:8px;padding:12px 10px;border:1px solid var(--line);border-radius:10px;background:#0d1119;color:var(--text);text-align:left}.provider-option.selected{border-color:var(--purple);background:#211a39}.provider-option i{font-size:9px;color:var(--purple);font-style:normal;margin-left:auto}.checkout-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}.checkout-fields label{position:relative}.checkout-fields input{display:block;width:100%;margin-top:7px;padding:12px 13px;border:1px solid var(--line);border-radius:9px;background:#0d1119;color:var(--text);outline:none}.checkout-fields input:focus{border-color:var(--purple);box-shadow:0 0 0 3px #9177f522}.checkout-fields small{position:absolute;right:12px;bottom:13px;color:var(--muted)}.checkout-submit{width:100%;justify-content:center;margin-top:22px}.secure-line{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:11px;margin-top:16px}.checkout-footer{text-align:center;color:#697184;font-size:11px;margin:25px 0}.checkout-hint{color:var(--muted);font-size:12px;text-align:center;margin-top:22px}.form-error{color:#f39a9a;background:#4b202744;border:1px solid #863c4d;border-radius:8px;padding:10px;font-size:12px;margin-top:16px}.checkout-success{background:#111722;border:1px solid var(--line);border-radius:18px;padding:36px;text-align:center;margin-top:70px;box-shadow:0 24px 80px #0007}.success-mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 20px;border-radius:50%;color:var(--green);background:#1b4637}.payment-reference{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:#0d1119;border:1px dashed #514477;border-radius:10px;padding:14px;margin:22px 0}.payment-reference span,.checkout-summary span{display:block;color:var(--muted);font-size:11px}.payment-reference strong{font-family:'Space Grotesk';color:#d9ceff;font-size:14px}.checkout-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:left;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 0}.checkout-summary strong{display:block;margin-top:5px}.checkout-note{display:flex;flex-direction:column;gap:5px;text-align:left;background:#1c1830;border-radius:10px;padding:14px;margin:20px 0;color:#d7d0ef;font-size:12px;line-height:1.5}.checkout-note span{color:#9c96b2}.checkout-success .full{margin-top:4px}
 .merchant-number-row{display:flex;align-items:center;gap:6px;margin-top:7px}
@@ -1256,6 +1261,402 @@
 .provider-option.selected i{color:#7c5cf0}
 .checkout-footer,.checkout-hint{font-weight:500}
 
+/* ─────────────────────────────────────────────────────────────
+   Checkout Pro — premium redesign of /payment/choose
+   Scoped to `.checkout-pro` so the shared `.checkout-*` classes used by
+   the admin login / track pages keep their original styling.
+   ───────────────────────────────────────────────────────────── */
+.checkout-page.checkout-pro{
+  background:
+    radial-gradient(900px 420px at 12% -8%,#efe9ff 0,rgba(239,233,255,0) 60%),
+    radial-gradient(760px 400px at 92% 4%,#e6f0ff 0,rgba(230,240,255,0) 62%),
+    radial-gradient(700px 500px at 50% 108%,#f6f2ff 0,rgba(246,242,255,0) 60%),
+    #f8f9fc!important;
+  color:#141824;
+  padding:40px 20px 24px;
+  position:relative;
+  /* `clip`, not `hidden`: `overflow-x:hidden` would force this element's
+     `overflow-y` to `auto`, turning the page into a second scroll container
+     alongside <body>. That extra scrollbar appeared and vanished as content
+     loaded, shifting the layout on every refresh. `clip` contains the overflow
+     without creating a scroll container. */
+  overflow-x:clip;
+  /* Column layout: the brand bar sits at the top, the shell below it takes the
+     remaining height and centers its card, and the footer stays at the bottom.
+     No absolute positioning, so nothing can overlap at any content height. */
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+.checkout-page.checkout-pro::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:linear-gradient(rgba(23,29,48,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(23,29,48,.045) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(620px 420px at 50% 0,#000 0,transparent 72%);
+  -webkit-mask-image:radial-gradient(620px 420px at 50% 0,#000 0,transparent 72%);
+  pointer-events:none;
+}
+.checkout-pro .checkout-shell{
+  width:min(100%,560px);
+  margin:0 auto;
+  position:relative;z-index:1;
+  /* Fills the space below the brand bar and centers the card in it. */
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+/* ── Page footer — always the last row at the bottom of the page ── */
+.checkout-pro .co-footer{
+  flex:none;
+  width:100%;
+  padding:18px 20px 4px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+}
+.checkout-pro .co-footer .checkout-footer{margin:0}
+
+/* "Powered by <merchant>" badge under the branding line. */
+.checkout-pro .co-powered{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px 4px 9px;
+  border:1px solid #e2d9ff;border-radius:999px;
+  background:#f1ecff;color:#6d28d9;
+  font-size:10.5px;font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.checkout-pro .co-powered svg{flex:none;color:#7c5cf0}
+.checkout-pro .co-powered b{font-weight:800;letter-spacing:.06em}
+
+/* ── Brand bar — always pinned to the page's top-left ── */
+.checkout-pro .co-brand-bar{
+  position:relative;
+  z-index:2;
+  padding:26px 30px 0;
+  display:flex;flex-direction:column;
+}
+.checkout-pro .co-brand-bar .co-brand{padding:0;justify-content:flex-start}
+
+/* Gateway lockup: logo tile beside a two-line text stack. */
+.checkout-pro .co-brand{
+  display:flex;align-items:center;justify-content:center;gap:13px;
+  padding:6px 0 26px;
+}
+.checkout-pro .co-brand-logo{
+  display:grid;place-items:center;flex:none;
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(145deg,#7c5cf0,#5b21b6);
+  color:#fff;overflow:hidden;
+  box-shadow:0 10px 22px rgba(109,40,217,.28),0 2px 4px rgba(109,40,217,.18);
+  position:relative;
+}
+.checkout-pro .co-brand-logo::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(160deg,rgba(255,255,255,.42),rgba(255,255,255,0) 55%);
+  pointer-events:none;
+}
+.checkout-pro .co-brand-logo img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+
+/* Text stack: gateway name (small, muted) above the merchant title (large). */
+.checkout-pro .co-brand-text{
+  display:flex;flex-direction:column;gap:2px;min-width:0;
+}
+/* Renders the brand exactly as configured (e.g. "ZiPAY GATEWAY") — no
+   text-transform, so the lowercase "i" is preserved. */
+.checkout-pro .co-brand-text strong{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:12.5px;font-weight:700;
+  letter-spacing:.12em;
+  line-height:1.2;color:#8a93a3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px;
+}
+/* Merchant title — matches the main site brand treatment (Cinzel Decorative
+   900 with the pink → amber → sky gradient). */
+.checkout-pro .co-merchant{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'Cinzel Decorative',serif;
+  font-weight:900;
+  font-size:clamp(15px,1.6vw,19px);
+  letter-spacing:.01em;line-height:1.35;
+  background-image:linear-gradient(90deg,#ec4899,#f59e0b,#0ea5e9);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+  text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:440px;
+}
+.checkout-pro .co-merchant svg{
+  flex:none;color:#ec4899;
+  width:.72em;height:.72em;
+}
+
+/* ── Card ── */
+.checkout-pro .co-card{
+  position:relative;
+  background:#fff;border:1px solid #ebedf4;border-radius:24px;
+  padding:28px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04),0 18px 44px rgba(16,24,40,.09),0 44px 90px -40px rgba(16,24,40,.16);
+}
+.checkout-pro .co-card::before{
+  content:"";position:absolute;top:0;left:24px;right:24px;height:3px;
+  border-radius:0 0 4px 4px;
+  background:linear-gradient(90deg,#7c5cf0,#a78bfa,#7c5cf0);
+  opacity:.85;
+}
+
+/* ── Amount ── */
+.checkout-pro .co-amount{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:24px 20px 22px;margin-bottom:24px;
+  border:1px dashed #ddd6fe;border-radius:18px;
+  background:linear-gradient(160deg,#faf9ff,#f5f3ff 55%,#f7f8fd);
+  text-align:center;
+}
+.checkout-pro .co-amount-label{
+  color:#6b7280;font-size:11px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.checkout-pro .co-amount-value{
+  display:flex;align-items:baseline;justify-content:center;gap:6px;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;
+  font-size:clamp(34px,7vw,44px);line-height:1.05;letter-spacing:-.03em;
+  color:#141824;
+}
+.checkout-pro .co-amount-value em{
+  font-style:normal;font-size:.62em;color:#7c5cf0;font-weight:600;
+}
+.checkout-pro .co-amount-value span{display:block}
+.checkout-pro .co-order{
+  margin-top:2px;color:#8a93a3;font-size:11px;font-weight:500;
+}
+.checkout-pro .co-order b{color:#5b6472;font-weight:700}
+
+/* ── Section heading ── */
+.checkout-pro .co-section-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.checkout-pro .co-step-label{
+  color:#4b5563;font-size:11px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;
+}
+
+/* ── Method rows ── */
+.checkout-pro .co-methods{display:grid;gap:10px}
+.checkout-pro .co-method{
+  display:flex;align-items:center;gap:13px;width:100%;
+  padding:14px 16px;text-align:left;
+  background:#fff;border:1px solid #e8eaf1;border-radius:15px;
+  color:#141824;cursor:pointer;
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease,background .16s ease;
+}
+.checkout-pro .co-method:hover:not(:disabled){
+  border-color:#c9bff7;background:#fdfcff;transform:translateY(-2px);
+  box-shadow:0 10px 24px rgba(16,24,40,.08);
+}
+.checkout-pro .co-method:focus-visible{outline:none;border-color:#7c5cf0;box-shadow:0 0 0 4px rgba(124,92,240,.16)}
+.checkout-pro .co-method:disabled{cursor:default;opacity:.62}
+.checkout-pro .co-method.is-busy{
+  border-color:#c9bff7;background:#faf8ff;opacity:1;
+  box-shadow:0 0 0 3px rgba(124,92,240,.12);
+}
+.checkout-pro .co-method-logo{
+  display:grid;place-items:center;flex:none;
+  width:42px;height:42px;border-radius:12px;overflow:hidden;
+  color:#fff;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;
+  text-transform:uppercase;
+  background:linear-gradient(145deg,#7c5cf0,#5b21b6);
+  box-shadow:0 4px 10px rgba(16,24,40,.14);
+}
+.checkout-pro .co-method-logo img{width:100%;height:100%;object-fit:cover}
+.checkout-pro .co-method-logo.bkash{background:linear-gradient(145deg,#e0427f,#c1135a)}
+.checkout-pro .co-method-logo.nagad{background:linear-gradient(145deg,#f0813c,#dd5f12)}
+.checkout-pro .co-method-logo.rocket{background:linear-gradient(145deg,#8455bd,#5f2f95)}
+.checkout-pro .co-method-logo.upay{background:linear-gradient(145deg,#4f8ef7,#1d4ed8)}
+.checkout-pro .co-method-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.checkout-pro .co-method-info strong{
+  font-size:14px;font-weight:700;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.checkout-pro .co-method-info small{color:#8a93a3;font-size:11.5px;font-weight:500}
+.checkout-pro .co-method-go{
+  display:grid;place-items:center;flex:none;
+  width:30px;height:30px;border-radius:9px;
+  background:#f5f5fa;color:#9aa1b1;
+  transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+.checkout-pro .co-method:hover:not(:disabled) .co-method-go{background:#f0ecff;color:#7c5cf0;transform:translateX(2px)}
+.checkout-pro .co-method.is-busy .co-method-go{background:#f0ecff}
+
+/* ── Error / secure ── */
+.checkout-pro .co-error{
+  display:flex;align-items:center;gap:8px;
+  margin-top:16px;padding:12px 14px;
+  border:1px solid #f3c2c2;border-radius:12px;
+  background:#fdeeee;color:#c2403f;font-size:12.5px;font-weight:600;
+}
+.checkout-pro .co-note{
+  margin-top:16px;padding:14px 16px;
+  border:1px solid #e9e6f6;border-radius:14px;
+  background:#f8f7fd;color:#4b5563;font-size:12.5px;line-height:1.65;
+}
+.checkout-pro .co-note span{
+  display:block;margin-bottom:3px;
+  color:#6b6f80;font-size:10.5px;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.checkout-pro .co-secure{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid #f0f1f6;
+  color:#8a93a3;font-size:11px;font-weight:600;
+  letter-spacing:.03em;
+}
+.checkout-pro .co-secure svg{color:#7c5cf0}
+
+/* ── State card (invalid session) ── */
+.checkout-pro .co-state-card{padding:32px 28px;text-align:center}
+.checkout-pro .co-state-icon{
+  display:grid;place-items:center;width:60px;height:60px;margin:0 auto 16px;
+  border-radius:18px;color:#fff;
+}
+.checkout-pro .co-state-icon--warn{
+  background:linear-gradient(145deg,#fbbf24,#d97706);
+  box-shadow:0 12px 26px rgba(217,119,6,.28);
+}
+.checkout-pro .co-state-title{
+  margin:0 0 8px;font-family:'Space Grotesk',sans-serif;
+  font-size:23px;font-weight:700;letter-spacing:-.02em;color:#141824;
+}
+.checkout-pro .co-state-text{
+  margin:0;color:#5b6472;font-size:13.5px;line-height:1.65;
+}
+.checkout-pro .co-state-card .co-note{text-align:left}
+.checkout-pro .co-state-card .co-secure{margin-top:22px}
+
+/* ── Loading spinner (inline, inside a payment method row) ── */
+.checkout-pro .co-spinner{
+  display:inline-block;width:28px;height:28px;border-radius:50%;
+  border:3px solid #ebe7fb;border-top-color:#7c5cf0;
+  animation:co-spin .8s linear infinite;
+}
+.checkout-pro .co-spinner--sm{width:16px;height:16px;border-width:2px}
+
+/* ── Skeleton ──
+   Rendered inside the real `.co-card` / `.co-summary` / `.co-pay` wrappers, so
+   the only thing these rules supply is the shimmer. Sizes match the elements
+   they stand in for, which keeps the loading and loaded layouts identical. */
+.checkout-pro .co-skeleton{
+  display:block;border-radius:10px;
+  background:linear-gradient(90deg,#eef0f6 25%,#f8f9fc 37%,#eef0f6 63%);
+  background-size:400% 100%;animation:co-shimmer 1.4s ease infinite;
+}
+/* Stands in for `.co-amount` — sized to the rendered panel (padding + label +
+   value + order line) so the card's height barely moves when content lands. */
+.checkout-pro .co-skeleton-amount{
+  display:block;width:100%;
+  height:118px;border-radius:18px;
+}
+/* Stands in for the section heading line. */
+.checkout-pro .co-skeleton-label{
+  width:46%;height:12px;
+}
+/* Stands in for a `.co-method` row. */
+.checkout-pro .co-skeleton-row{
+  height:70px;border-radius:15px;
+}
+
+@keyframes co-spin{to{transform:rotate(360deg)}}
+@keyframes co-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+
+/* ─────────────────────────────────────────────────────────────
+   Checkout Pro — desktop layout (≥900px).
+   Mobile keeps the single-column stack defined above; larger screens get a
+   wider two-column card: amount summary on the left, payment methods right.
+   ───────────────────────────────────────────────────────────── */
+@media(min-width:900px){
+  .checkout-page.checkout-pro{padding:36px 24px 16px}
+  .checkout-pro .checkout-shell{width:min(100%,900px)}
+
+  .checkout-pro .co-brand-bar{padding:34px 40px 0}
+  .checkout-pro .co-brand{gap:16px}
+  .checkout-pro .co-brand-logo{width:58px;height:58px;border-radius:17px}
+  .checkout-pro .co-brand-text strong{font-size:13.5px;max-width:520px}
+  .checkout-pro .co-merchant{font-size:21px;max-width:640px}
+
+  .checkout-pro .co-card{
+    padding:32px;
+    border-radius:28px;
+    display:grid;
+    grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+    gap:28px;
+    align-items:start;
+  }
+  .checkout-pro .co-card::before{left:32px;right:32px}
+
+  /* Left column: amount summary */
+  .checkout-pro .co-summary{min-width:0}
+  .checkout-pro .co-amount{
+    padding:38px 24px 34px;margin-bottom:0;border-radius:20px;
+  }
+  .checkout-pro .co-amount-value{font-size:clamp(44px,4vw,56px)}
+  .checkout-pro .co-amount-label{font-size:11.5px}
+  .checkout-pro .co-order{font-size:11.5px}
+
+  /* Right column: payment methods */
+  .checkout-pro .co-pay{min-width:0}
+  .checkout-pro .co-methods{gap:12px}
+  .checkout-pro .co-method{padding:16px 18px;border-radius:16px}
+  .checkout-pro .co-method-logo{width:46px;height:46px;border-radius:13px;font-size:21px}
+  .checkout-pro .co-method-info strong{font-size:15px}
+  .checkout-pro .co-method-info small{font-size:12px}
+  .checkout-pro .co-method-go{width:34px;height:34px;border-radius:10px}
+  .checkout-pro .co-section-head{margin-bottom:14px}
+  .checkout-pro .co-secure{margin-top:24px;padding-top:18px}
+
+  /* Below the card */
+  .checkout-pro .co-footer{padding:22px 24px 4px}
+
+  /* Centered single-panel state on desktop. The skeleton is intentionally NOT
+     grouped here: it keeps the two-column `.co-card` grid above so the loading
+     layout matches the loaded layout and nothing shifts on refresh. */
+  .checkout-pro .co-state-card{
+    display:grid;
+    grid-template-columns:1fr;
+    max-width:560px;
+    margin:0 auto;
+  }
+  .checkout-pro .co-skeleton-amount{height:200px}
+  .checkout-pro .co-state-card{padding:44px 40px}
+  .checkout-pro .co-state-title{font-size:27px}
+  .checkout-pro .co-state-text{font-size:14.5px}
+}
+
+@media(max-width:760px){
+  .checkout-page.checkout-pro{padding:20px 14px 14px}
+  .checkout-pro .co-brand-bar{padding:20px 18px 0}
+  .checkout-pro .co-brand{gap:11px}
+  .checkout-pro .co-brand-logo{width:42px;height:42px;border-radius:12px}
+  .checkout-pro .co-brand-text strong{font-size:10.5px;letter-spacing:.1em;max-width:180px}
+  .checkout-pro .co-merchant{font-size:13px;max-width:230px;gap:5px}
+  .checkout-pro .co-card{padding:20px;border-radius:20px}
+  .checkout-pro .co-card::before{left:16px;right:16px}
+  .checkout-pro .co-amount{padding:20px 14px 18px;margin-bottom:20px}
+  .checkout-pro .co-method{padding:12px 13px;gap:11px}
+  .checkout-pro .co-method-logo{width:38px;height:38px;border-radius:11px;font-size:17px}
+  .checkout-pro .co-method-info strong{font-size:13.5px}
+  .checkout-pro .co-footer{padding:16px 14px 2px}
+  .checkout-pro .co-state-card{padding:26px 20px}
+  .checkout-pro .co-state-title{font-size:20px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .checkout-pro .co-method,.checkout-pro .co-method-go{transition:none}
+  .checkout-pro .co-skeleton{animation:none}
+}
+
 /* -------------------------------------------------------
    ADMIN LIGHT THEME
    The admin shell renders <div class="app dark|light">. Every rule below is
@@ -1350,3 +1751,57 @@
 .app.light .workspace small,.app.light .user-card small{color:#6b7280}
 .app.light .mobile-close{color:#4b5563}
 .app.light .brand span{color:#6b7280}
+
+/* ─────────────────────────────────────────────────────────────
+   Account type picker — icon segmented control (admin payment methods)
+   Replaces the plain <select> so the choice reads at a glance.
+   Uses the theme variables, so it adapts to the dark/light admin shell.
+   ───────────────────────────────────────────────────────────── */
+.type-toggle{display:flex;gap:8px}
+.type-option{
+  display:flex;align-items:center;gap:8px;flex:1;min-width:0;
+  padding:9px 12px;text-align:left;
+  border:1px solid var(--line);border-radius:10px;
+  background:var(--input-bg,#0d1119);color:var(--text);
+  cursor:pointer;
+  transition:border-color .15s ease,background .15s ease,box-shadow .15s ease;
+}
+.type-option:hover{border-color:var(--purple)}
+.type-option:focus-visible{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,92,240,.18)}
+.type-option.is-active{
+  border-color:var(--purple);
+  background:rgba(124,92,240,.10);
+  box-shadow:0 0 0 1px var(--purple) inset;
+}
+.type-option-icon{
+  display:grid;place-items:center;flex:none;
+  width:30px;height:30px;border-radius:9px;
+  background:rgba(124,92,240,.12);color:var(--purple);
+  transition:background .15s ease,color .15s ease;
+}
+.type-option.is-active .type-option-icon{background:var(--purple);color:#fff}
+.type-option strong{font-size:12.5px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+
+/* Inline account-type badge in the payment-methods table */
+.type-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px 3px 7px;border-radius:999px;
+  font-size:11px;font-weight:600;white-space:nowrap;
+  border:1px solid transparent;
+}
+.type-badge svg{flex:none}
+.type-badge.merchant{background:#e8f1ff;color:#1d4ed8;border-color:#cfe0ff}
+.type-badge.personal{background:#f1ecff;color:#6d28d9;border-color:#e2d9ff}
+
+.app.light .type-option{background:#ffffff;border-color:#e4e7ee}
+.app.light .type-option:hover{border-color:#c9bff7}
+.app.light .type-option.is-active{background:#f5f2ff;border-color:#7c5cf0}
+
+@media(max-width:760px){
+  .type-toggle{display:grid}
+  .type-option{padding:9px 11px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .type-option,.type-option-icon{transition:none}
+}

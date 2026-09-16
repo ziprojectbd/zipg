@@ -32,18 +32,38 @@ export interface ProcessSmsInput {
 
 // Captures transaction ID (group 1). Amount/phone are extracted independently to
 // avoid assuming field ordering (real bKash/Nagad SMS put the amount BEFORE the TrxID).
+//
+// IMPORTANT: these patterns must NOT require the brand name to appear in the
+// body. Real wallet SMS bodies are sent from a short code and frequently never
+// mention "bKash"/"Nagad" at all, e.g.
+//   "You have received Tk 1,200.00 from 01711111111. Fee Tk 0.00.
+//    Balance Tk 5,432.10. TrxID 9AB1CD2E3F at 15/09/2026 13:45"
+// Requiring the brand name made every such message parse with no TrxID, so no
+// payment could ever auto-match. The provider is resolved from the SMS sender
+// (or the device's provider hint) instead.
+const TXN_ID_BODY = '(?:TXN|Trx\\s*ID|Transaction\\s*ID|ট্রানজেকশন আইডি|ট্রাঞ্জেকশন আইডি)[:\\s#-]*([A-Z0-9]{4,})';
+
 const DEFAULT_PARSER_RULES: Record<string, string> = {
-  bkash:
-    '(?:bKash|বিকাশ).*?(?:TXN|TrxID|Transaction\\s*ID|ট্রানজেকশন আইডি|ট্রাঞ্জেকশন আইডি)[:\\s]*([A-Z0-9]+)',
-  nagad: '(?:Nagad|নগদ).*?(?:TXN|TrxID|Transaction\\s*ID)[:\\s]*([A-Z0-9]+)',
-  rocket: '(?:Rocket|রকেট).*?(?:TXN|TrxID|Transaction\\s*ID)[:\\s]*([A-Z0-9]+)',
-  upay: '(?:Upay|Upay\\s*BD|ইপে\\s*ডিজিটাল|উপায়).*?(?:TXN|TrxID|Transaction\\s*ID)[:\\s]*([A-Z0-9]+)',
+  bkash: TXN_ID_BODY,
+  nagad: TXN_ID_BODY,
+  rocket: TXN_ID_BODY,
+  upay: TXN_ID_BODY,
 };
 
 const PHONE_REGEX = /01\d{9}/;
-// Real bKash/Nagad/Rocket SMS put the amount BEFORE the currency
-// ("100.00 BDT"), but some formats put it after ("BDT 100.00"). Match both.
-const AMOUNT_REGEX = /(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)[:\s]*(?:BDT|Tk|টাকা|TK)/i;
+// Amount handling covers every real wallet SMS layout seen in production:
+//   "... Tk 1,200.00 ..."      (intl-style Tk)
+//   "... 1200.00 Tk ..."       (amount first)
+//   "... BDT 1200 ..."         (English)
+//   "... ৳1,200.00 ..."        (currency glyph)
+//   "... টাকা ১,২০০ ..."        (Bangla)
+// The amount is taken from whichever side carries the currency marker, with
+// thousands separators allowed.
+const CURRENCY = '(?:BDT|Tk|TK|৳|টাকা)';
+const AMOUNT_REGEX = new RegExp(
+  `${CURRENCY}[:\\s]*([\\d,]+(?:\\.\\d+)?)|([\\d,]+(?:\\.\\d+)?)[:\\s]*${CURRENCY}`,
+  'i'
+);
 const SENDER_KW: Record<string, string[]> = {
   bkash: ['bKash', 'বিকাশ'],
   nagad: ['Nagad', 'নগদ'],

@@ -1,72 +1,71 @@
 import { Request, Response, NextFunction } from 'express';
 import * as systemSettingsService from '../services/systemSettings.service.js';
+import { parseSms } from '../services/smsParser.service.js';
 import { ActivityLog } from '../models/index.js';
 
-/* ────────── SMS Test ────────── */
-const SMS_PARSER_REGEX: Record<string, RegExp> = {
-  bkash: /(?:bKash|বিকাশ).*?(?:TXN|TrxID|Transaction\s*ID)[:\s]*([A-Z0-9]+).*?(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+)/is,
-  nagad: /(?:Nagad|নগদ).*?(?:TXN|TrxID|Transaction\s*ID)[:\s]*([A-Z0-9]+).*?(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+)/is,
-  rocket: /(?:Rocket|রকেট).*?(?:TXN|TrxID|Transaction\s*ID)[:\s]*([A-Z0-9]+).*?(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+)/is,
-};
-
-const PHONE_REGEX = /01\d{9}/;
-const SENDER_REGEX = /(?:from|From|From:)\s*(\S+)/;
-
+/*
+ * SMS Test
+ *
+ * This endpoint delegates to the shared parser service instead of keeping its
+ * own regex table. The duplicate copy that used to live here required the brand
+ * name ("bKash") in the SMS body, so testing a real wallet SMS — which is sent
+ * from a short code and never contains the brand — reported "No transaction ID
+ * found" even though the live pipeline parsed the same text correctly. One
+ * parser means the tester can never disagree with production.
+ *
+ * Accepts `smsText` (admin UI) or `rawSms` (validator schema) for the body.
+ */
 export async function testSmsController(req: Request, res: Response, next: NextFunction) {
   try {
-    const { smsText, provider, deviceId } = req.body;
+    const { smsText, rawSms, provider } = req.body as {
+      smsText?: string;
+      rawSms?: string;
+      provider?: string;
+      deviceId?: string;
+    };
 
-    if (!smsText) {
+    const text = smsText || rawSms;
+
+    if (!text) {
       res.status(400).json({ success: false, error: 'SMS text is required' });
       return;
     }
 
-    const regex = SMS_PARSER_REGEX[provider] || SMS_PARSER_REGEX.bkash;
-    let txnMatch = smsText.match(regex);
-    const amountMatch = smsText.match(/(?:BDT|Tk|টাকা|TK)[:\s]*([\d,]+)/i);
-    let parsedAmount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
-    const phoneMatch = smsText.match(PHONE_REGEX);
-    const senderMatch = smsText.match(SENDER_REGEX);
+    // Sender doubles as the provider hint: the UI does not always send one, and
+    // real SMS arrive from the wallet's short code rather than its brand name.
+    const parsed = await parseSms(text, provider || 'unknown', provider);
 
-    const now = new Date();
-    const parsed: Record<string, unknown> = {
-      provider: provider || 'unknown',
-      amount: parsedAmount,
-      transactionId: txnMatch?.[1] || null,
-      sender: senderMatch?.[1] || 'unknown',
-      phone: phoneMatch?.[0] || 'unknown',
-      paymentTime: now.toISOString(),
-      validationResult: 'success',
+    const issues: string[] = [...parsed.issues];
+
+    const result: Record<string, unknown> = {
+      provider: parsed.provider,
+      amount: parsed.amount ?? 0,
+      transactionId: parsed.transactionId,
+      sender: parsed.sender,
+      phone: parsed.phone ?? 'unknown',
+      category: parsed.category,
+      confidence: parsed.confidence,
+      paymentTime: new Date().toISOString(),
+      validationResult: issues.length > 0 ? 'warning' : 'success',
+      finalStatus: issues.length > 0 ? 'partial' : 'detected',
       matchedOrder: null,
-      finalStatus: 'detected',
-      rawSms: smsText,
+      rawSms: text,
     };
 
-    // Run validation checks
-    const issues: string[] = [];
-    if (!txnMatch?.[1]) issues.push('No transaction ID found');
-    if (!parsedAmount) issues.push('No amount found');
-    if (!phoneMatch) issues.push('No phone number found');
-    if (issues.length > 0) {
-      parsed.validationResult = 'warning';
-      parsed.finalStatus = 'partial';
-    }
-
-    // Log the test
     await ActivityLog.create({
       action: 'sms_received',
       severity: 'info',
-      message: `SMS test: ${provider || 'auto'} - ${parsed.finalStatus}`,
+      message: `SMS test: ${parsed.provider} - ${result.finalStatus}`,
       entityType: 'SmsTest',
-      metadata: { parsed, issues },
+      metadata: { parsed: result, issues },
     });
 
     res.json({
       success: true,
       data: {
-        parsed,
+        parsed: result,
         issues,
-        rawJson: parsed,
+        rawJson: result,
       },
     });
   } catch (error) { next(error); }

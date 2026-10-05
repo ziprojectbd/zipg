@@ -1268,11 +1268,11 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
    ───────────────────────────────────────────────────────────── */
 .checkout-page.checkout-pro{
   background:
-    radial-gradient(900px 420px at 12% -8%,#efe9ff 0,rgba(239,233,255,0) 60%),
-    radial-gradient(760px 400px at 92% 4%,#e6f0ff 0,rgba(230,240,255,0) 62%),
-    radial-gradient(700px 500px at 50% 108%,#f6f2ff 0,rgba(246,242,255,0) 60%),
-    #f8f9fc!important;
-  color:#141824;
+    radial-gradient(900px 520px at 10% -6%,rgba(139,92,246,.22) 0,rgba(139,92,246,0) 58%),
+    radial-gradient(820px 480px at 94% 6%,rgba(99,102,241,.20) 0,rgba(99,102,241,0) 60%),
+    radial-gradient(760px 600px at 50% 110%,rgba(124,58,237,.18) 0,rgba(124,58,237,0) 62%),
+    linear-gradient(160deg,#0b0f1d 0%,#0f1230 45%,#0c0a1e 100%)!important;
+  color:#e6e8f5;
   padding:40px 20px 24px;
   position:relative;
   /* `clip`, not `hidden`: `overflow-x:hidden` would force this element's
@@ -1282,7 +1282,7 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
      without creating a scroll container. */
   overflow-x:clip;
   /* Column layout: the brand bar sits at the top, the shell below it takes the
-     remaining height and centers its card, and the footer stays at the bottom.
+     remaining height and centers the card, and the footer stays at the bottom.
      No absolute positioning, so nothing can overlap at any content height. */
   display:flex;
   flex-direction:column;
@@ -1292,10 +1292,10 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
   content:"";
   position:absolute;
   inset:0;
-  background-image:linear-gradient(rgba(23,29,48,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(23,29,48,.045) 1px,transparent 1px);
+  background-image:linear-gradient(rgba(124,92,246,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,246,.06) 1px,transparent 1px);
   background-size:48px 48px;
-  mask-image:radial-gradient(620px 420px at 50% 0,#000 0,transparent 72%);
-  -webkit-mask-image:radial-gradient(620px 420px at 50% 0,#000 0,transparent 72%);
+  mask-image:radial-gradient(640px 460px at 50% 0,#000 0,transparent 74%);
+  -webkit-mask-image:radial-gradient(640px 460px at 50% 0,#000 0,transparent 74%);
   pointer-events:none;
 }
 .checkout-pro .checkout-shell{
@@ -1325,13 +1325,14 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 .checkout-pro .co-powered{
   display:inline-flex;align-items:center;gap:5px;
   padding:4px 11px 4px 9px;
-  border:1px solid #e2d9ff;border-radius:999px;
-  background:#f1ecff;color:#6d28d9;
+  border:1px solid rgba(124,92,240,.34);border-radius:999px;
+  background:rgba(124,92,240,.10);color:#c4b5ff;
   font-size:10.5px;font-weight:600;
   letter-spacing:.06em;
   text-transform:uppercase;
+  box-shadow:0 0 8px rgba(124,92,240,.22);
 }
-.checkout-pro .co-powered svg{flex:none;color:#7c5cf0}
+.checkout-pro .co-powered svg{flex:none;color:#a78bfa}
 .checkout-pro .co-powered b{font-weight:800;letter-spacing:.06em}
 
 /* ── Brand bar — always pinned to the page's top-left ── */
@@ -1398,9 +1399,10 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 /* ── Card ── */
 .checkout-pro .co-card{
   position:relative;
-  background:#fff;border:1px solid #ebedf4;border-radius:24px;
+  background:rgba(15,17,40,.82);border:1px solid rgba(124,92,240,.16);border-radius:24px;
   padding:28px;
-  box-shadow:0 1px 2px rgba(16,24,40,.04),0 18px 44px rgba(16,24,40,.09),0 44px 90px -40px rgba(16,24,40,.16);
+  box-shadow:0 1px 2px rgba(0,0,0,.35),0 18px 44px rgba(0,0,0,.38),0 44px 90px -40px rgba(0,0,0,.50);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
 }
 .checkout-pro .co-card::before{
   content:"";position:absolute;top:0;left:24px;right:24px;height:3px;
@@ -1412,34 +1414,35 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 /* ── Amount ── */
 .checkout-pro .co-amount{
   display:flex;flex-direction:column;align-items:center;gap:6px;
-  padding:24px 20px 22px;margin-bottom:24px;
-  border:1px dashed #ddd6fe;border-radius:18px;
-  background:linear-gradient(160deg,#faf9ff,#f5f3ff 55%,#f7f8fd);
+  padding:28px 20px 28px;margin-bottom:28px;
+  border:1px dashed rgba(124,92,240,.20);border-radius:18px;
+  background:linear-gradient(160deg,#141824 0%,#0d1120 55%,#0e122d);
   text-align:center;
+  color:#e6e8f5;
 }
 .checkout-pro .co-amount-label{
-  color:#6b7280;font-size:11px;font-weight:700;
+  color:#a78bfa;font-size:11px;font-weight:700;
   letter-spacing:.14em;text-transform:uppercase;
 }
 .checkout-pro .co-amount-value{
   display:flex;align-items:baseline;justify-content:center;gap:6px;
   font-family:'Space Grotesk',sans-serif;font-weight:700;
   font-size:clamp(34px,7vw,44px);line-height:1.05;letter-spacing:-.03em;
-  color:#141824;
+  color:#e6e8f5;
 }
 .checkout-pro .co-amount-value em{
-  font-style:normal;font-size:.62em;color:#7c5cf0;font-weight:600;
+  font-style:normal;font-size:.62em;color:#a78bfa;font-weight:600;
 }
 .checkout-pro .co-amount-value span{display:block}
 .checkout-pro .co-order{
-  margin-top:2px;color:#8a93a3;font-size:11px;font-weight:500;
+  margin-top:2px;color:#6b7283;font-size:11px;font-weight:500;
 }
-.checkout-pro .co-order b{color:#5b6472;font-weight:700}
+.checkout-pro .co-order b{color:#8a93a3;font-weight:700}
 
 /* ── Section heading ── */
-.checkout-pro .co-section-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.checkout-pro .co-section-head{display:flex;align-items:center;gap:9px;margin-bottom:16px}
 .checkout-pro .co-step-label{
-  color:#4b5563;font-size:11px;font-weight:700;
+  color:#9aa1b8;font-size:11px;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;
 }
 
@@ -1494,24 +1497,24 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 .checkout-pro .co-error{
   display:flex;align-items:center;gap:8px;
   margin-top:16px;padding:12px 14px;
-  border:1px solid #f3c2c2;border-radius:12px;
-  background:#fdeeee;color:#c2403f;font-size:12.5px;font-weight:600;
+  border:1px solid rgba(252,194,226,.25);border-radius:12px;
+  background:rgba(252,194,226,.15);color:#f8c2a6;font-size:12.5px;font-weight:600;
 }
 .checkout-pro .co-note{
   margin-top:16px;padding:14px 16px;
-  border:1px solid #e9e6f6;border-radius:14px;
-  background:#f8f7fd;color:#4b5563;font-size:12.5px;line-height:1.65;
+  border:1px solid rgba(124,92,240,.20);border-radius:14px;
+  background:rgba(15,17,40,.60);color:#a78bfa;font-size:12.5px;line-height:1.65;
 }
 .checkout-pro .co-note span{
   display:block;margin-bottom:3px;
-  color:#6b6f80;font-size:10.5px;font-weight:800;
+  color:#6b7283;font-size:10.5px;font-weight:800;
   letter-spacing:.1em;text-transform:uppercase;
 }
 .checkout-pro .co-secure{
   display:flex;align-items:center;justify-content:center;gap:6px;
   margin-top:20px;padding-top:16px;
-  border-top:1px solid #f0f1f6;
-  color:#8a93a3;font-size:11px;font-weight:600;
+  border-top:1px solid rgba(124,92,240,.20);
+  color:#a78bfa;font-size:11px;font-weight:600;
   letter-spacing:.03em;
 }
 .checkout-pro .co-secure svg{color:#7c5cf0}
@@ -1521,17 +1524,19 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 .checkout-pro .co-state-icon{
   display:grid;place-items:center;width:60px;height:60px;margin:0 auto 16px;
   border-radius:18px;color:#fff;
+  background:linear-gradient(145deg,#7c5cf0,#5b21b6);
+  box-shadow:0 12px 26px rgba(124,92,240,.30);
 }
 .checkout-pro .co-state-icon--warn{
-  background:linear-gradient(145deg,#fbbf24,#d97706);
-  box-shadow:0 12px 26px rgba(217,119,6,.28);
+  background:linear-gradient(145deg,#f59e0b,#ef4444);
+  box-shadow:0 12px 26px rgba(239,68,68,.30);
 }
 .checkout-pro .co-state-title{
   margin:0 0 8px;font-family:'Space Grotesk',sans-serif;
-  font-size:23px;font-weight:700;letter-spacing:-.02em;color:#141824;
+  font-size:23px;font-weight:700;letter-spacing:-.02em;color:#e6e8f5;
 }
 .checkout-pro .co-state-text{
-  margin:0;color:#5b6472;font-size:13.5px;line-height:1.65;
+  margin:0;color:#6b7283;font-size:13.5px;line-height:1.65;
 }
 .checkout-pro .co-state-card .co-note{text-align:left}
 .checkout-pro .co-state-card .co-secure{margin-top:22px}
@@ -1539,7 +1544,7 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 /* ── Loading spinner (inline, inside a payment method row) ── */
 .checkout-pro .co-spinner{
   display:inline-block;width:28px;height:28px;border-radius:50%;
-  border:3px solid #ebe7fb;border-top-color:#7c5cf0;
+  border:3px solid rgba(124,92,240,.30);border-top-color:#a78bfa;
   animation:co-spin .8s linear infinite;
 }
 .checkout-pro .co-spinner--sm{width:16px;height:16px;border-width:2px}
@@ -1547,10 +1552,10 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
 /* ── Skeleton ──
    Rendered inside the real `.co-card` / `.co-summary` / `.co-pay` wrappers, so
    the only thing these rules supply is the shimmer. Sizes match the elements
-   they stand in for, which keeps the loading and loaded layouts identical. */
+   they stand in for, so the loading and loaded layouts are identical. */
 .checkout-pro .co-skeleton{
   display:block;border-radius:10px;
-  background:linear-gradient(90deg,#eef0f6 25%,#f8f9fc 37%,#eef0f6 63%);
+  background:linear-gradient(90deg,#1a2032 25%,#141824 37%,#1a2032 63%);
   background-size:400% 100%;animation:co-shimmer 1.4s ease infinite;
 }
 /* Stands in for `.co-amount` — sized to the rendered panel (padding + label +
@@ -1586,20 +1591,23 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
   .checkout-pro .co-brand-text strong{font-size:13.5px;max-width:520px}
   .checkout-pro .co-merchant{font-size:21px;max-width:640px}
 
-  .checkout-pro .co-card{
+.checkout-pro .co-card{
     padding:32px;
     border-radius:28px;
     display:grid;
     grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
     gap:28px;
     align-items:start;
-  }
+    background:rgba(255,255,255,.03);
+}
   .checkout-pro .co-card::before{left:32px;right:32px}
 
   /* Left column: amount summary */
   .checkout-pro .co-summary{min-width:0}
   .checkout-pro .co-amount{
     padding:38px 24px 34px;margin-bottom:0;border-radius:20px;
+    background:rgba(255,255,255,.03);
+    border:1px dashed rgba(124,92,240,.18);
   }
   .checkout-pro .co-amount-value{font-size:clamp(44px,4vw,56px)}
   .checkout-pro .co-amount-label{font-size:11.5px}
@@ -1644,9 +1652,9 @@ body{margin:0;background:var(--bg);min-width:320px}button,input,select{font:inhe
   .checkout-pro .co-card{padding:20px;border-radius:20px}
   .checkout-pro .co-card::before{left:16px;right:16px}
   .checkout-pro .co-amount{padding:20px 14px 18px;margin-bottom:20px}
-  .checkout-pro .co-method{padding:12px 13px;gap:11px}
-  .checkout-pro .co-method-logo{width:38px;height:38px;border-radius:11px;font-size:17px}
-  .checkout-pro .co-method-info strong{font-size:13.5px}
+  .checkout-pro .co.method{padding:12px 13px;gap:11px}
+  .checkout-pro .co.method-logo{width:38px;height:38px;border-radius:11px;font-size:17px}
+  .checkout-pro .co.method-info strong{font-size:13.5px}
   .checkout-pro .co-footer{padding:16px 14px 2px}
   .checkout-pro .co-state-card{padding:26px 20px}
   .checkout-pro .co-state-title{font-size:20px}

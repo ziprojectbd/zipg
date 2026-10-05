@@ -1520,6 +1520,14 @@ function Checkout() {
   );
   const [sessionAmount, setSessionAmount] = useState(0);
   const [sessionOrderId, setSessionOrderId] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [selectedMethodKey, setSelectedMethodKey] = useState(0);
+
+  // Request identity tracking to prevent stale API responses from overwriting
+  // the currently selected method. Each mint request gets a monotonically
+  // increasing ID; completed/cancelled requests' IDs are discarded so that
+  // only the last-selected method's response can update UI state.
+  const [requestId, setRequestId] = useState(0);
 
   useEffect(() => {
     fetch(`${API_URL}/api/public/pay-settings`)
@@ -1619,6 +1627,10 @@ function Checkout() {
     if (!taka) { setError("No amount specified — please return to the store and try again."); return; }
     setMintingProvider(code);
     setError("");
+    setSelectedMethod(code);
+    setSelectedMethodKey((prev) => prev + 1);
+    setRequestId((prev) => prev + 1);
+    const currentRequestId = requestId;
     try {
       const res = await fetch(`${API_URL}/api/invoices/mint`, {
         method: "POST",
@@ -1629,6 +1641,9 @@ function Checkout() {
       if (!res.ok) throw new Error(data.error || "Could not create invoice");
       const invoice = data?.data;
       if (!invoice?.publicInvoiceId || !invoice?.secureToken) throw new Error("Invoice creation failed");
+      // Only proceed if this request's ID still matches the current request ID
+      // (prevents stale responses from overriding a newer method selection).
+      if (currentRequestId !== requestId) throw new Error("Stale request — method selection changed");
       const invoiceQuery =
         `/payment/invoice?invoiceId=${encodeURIComponent(invoice.publicInvoiceId)}` +
         `&token=${encodeURIComponent(invoice.secureToken)}`;
@@ -1636,6 +1651,7 @@ function Checkout() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create invoice");
       setMintingProvider(null);
+      setSelectedMethod(null);
     }
   };
 
@@ -1776,31 +1792,38 @@ function Checkout() {
                 <span className="co-step-label">Select Payment Method</span>
               </div>
 
-              <div className="co-methods">
+<div className="co-methods">
                 {methodCodes.map((item) => {
-                const cfg = findProvider(providers, item);
-                const busy = mintingProvider === item;
-                return (
-                  <button
-                    type="button"
-                    key={item}
-                    className={`co-method ${busy ? "is-busy" : ""}`}
-                    onClick={() => selectProvider(item)}
-                    disabled={!!mintingProvider}
-                  >
-                    <span className={`co-method-logo ${item}`}>
-                      {cfg.icon ? <img src={cfg.icon} alt={providerLabel(item)} /> : providerLabel(item)[0]}
-                    </span>
-                    <span className="co-method-info">
-                      <strong>{cfg.displayName || providerLabel(item)}</strong>
-                      <small>{busy ? "Creating secure invoice…" : cfg.qrImageUrl ? "Scan the QR code to pay" : "Send money to the merchant number"}</small>
-                    </span>
-                    <span className="co-method-go">
-                      {busy ? <i className="co-spinner co-spinner--sm" /> : <ChevronRight size={17} />}
-                    </span>
-                  </button>
-                );
-              })}
+                  const cfg = findProvider(providers, item);
+                  const busy = mintingProvider === item;
+                  return (
+                    <button
+                      type="button"
+                      key={item + selectedMethodKey}
+                      className={`co-method ${busy ? "is-busy" : ""}`}
+                      onClick={() => selectProvider(item)}
+                      disabled={!!mintingProvider}
+                    >
+                      <span className={`co-method-logo ${item}`}>
+                        {cfg.icon ? <img src={cfg.icon} alt={providerLabel(item)} /> : providerLabel(item)[0]}
+                      </span>
+                      <span className="co-method-info">
+                        <strong>{cfg.displayName || providerLabel(item)}</strong>
+                        <small>{busy ? "Creating secure invoice…" : cfg.qrImageUrl ? "Scan the QR code to pay" : "Send money to the merchant number"}</small>
+                      </span>
+                      <span className="co-method-go">
+                        {busy ? <i className="co-spinner co-spinner--sm" /> : <ChevronRight size={17} />}
+                      </span>
+                    </button>
+                  );
+                })}
+                {mintingProvider && !providersLoaded && (
+                  <span className="co-method-loading">
+                    <span className="co-skeleton co-skeleton-row" />
+                    <span className="co-skeleton co-skeleton-row" />
+                    <span className="co-skeleton co-skeleton-row" />
+                  </span>
+                )}
               </div>
             </div>
 

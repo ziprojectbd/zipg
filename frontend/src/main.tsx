@@ -2038,9 +2038,7 @@ function InvoicePayment() {
   }, []);
 
   // All display values come from the backend invoice response.
-  const resolvedProvider =
-    (invoiceData?.provider as string) ||
-    (providers.length > 0 ? providers[0].code : "bkash");
+  const resolvedProvider = invoiceData?.provider ?? "";
   const amount = toWholeTaka(invoiceData?.amount) || 0;
 
   // Provider config from the DB-driven list (falls back to built-in defaults).
